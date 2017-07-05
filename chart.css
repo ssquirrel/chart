@@ -1,0 +1,19 @@
+select{
+    overflow-y: auto;
+    min-width: 250px;
+}
+
+.selectBox{
+    float: left;
+    margin-right: 5px;
+}
+
+.selectTitle{
+    text-align: center;
+}
+
+
+#chart{
+    margin-top: 10px;
+    border: 1px solid;
+}
