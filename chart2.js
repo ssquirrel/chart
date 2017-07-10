@@ -41,8 +41,8 @@ class Axis {
     }
 
     distance(idx) {
-        return this.length * this.data[idx] / (this.max - this.min)
-            - this.length * this.min / (this.max - this.min);
+        return this.length * this.data[idx] / (this.min - this.max)
+            - this.length * this.max / (this.min - this.max);
     }
 }
 
@@ -68,10 +68,10 @@ class LineChart {
         const step = this.xAxis.length / this.yAxis.data.length;
 
         this.ctx.beginPath();
-        this.ctx.moveTo(this.xAxis.x, this.yAxis.distance(0));
+        this.ctx.moveTo(this.xAxis.x, this.rect.top + this.yAxis.distance(0));
 
         for (let i = 1; i < this.yAxis.data.length; i++) {
-            this.ctx.lineTo(this.xAxis.x + i * step, this.yAxis.distance(i));
+            this.ctx.lineTo(this.xAxis.x + i * step, this.rect.top + this.yAxis.distance(i));
         }
 
         this.ctx.stroke();
@@ -117,10 +117,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
         let lineChart = new LineChart(ctx,
             {
-                left: canvas.width * 0.05,
-                bottom: canvas.height * 0.8,
-                top: canvas.height * 0.2,
-                right: canvas.width * 0.95,
+                left: 0,
+                bottom: canvas.height,
+                top: 0,
+                right: canvas.width,
             })
 
 
