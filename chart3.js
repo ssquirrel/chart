@@ -20,7 +20,7 @@ var source = (function () {
             if (files.length == 0)
                 return;
 
-            if (data.size == COLORS.length) {
+            if (color.size == COLORS.length) {
                 alert("enough!")
                 return;
             }
@@ -45,17 +45,19 @@ var source = (function () {
     function parseCSV(filename, result) {
         const IGNORE_FIRST_N = 3;
 
-        let csv = new Map();
 
-        data.set(filename, csv);
-        color.set(csv, COLORS[(index++) % COLORS.length]);
+        color.set(filename, COLORS[(index++) % COLORS.length]);
+
 
         let lines = result.split("\r\n");
 
         let names = lines[0].split(",");
         let units = lines[1].split(",");
 
-        let cols = (new Array(names.length)).fill([]);
+        let cols = [];
+
+        for (let i = 0; i < names.length; i++)
+            cols.push([]);
 
         for (let i = IGNORE_FIRST_N; i < lines.length; i++) {
             var line = lines[i].split(",");
@@ -79,11 +81,17 @@ var source = (function () {
                 continue;
 
             let col = {
-                unit: units[i],
+                from: filename,
                 data: cols[i]
             };
 
-            csv.set(names[i], col);
+            let list = data.get(names[i]);
+            if (!list) {
+                list = [];
+                data.set(names[i], list);
+            }
+
+            list.push(col);
         }
     }
 
@@ -97,31 +105,22 @@ var source = (function () {
 var controller = (function () {
     function load() {
         source.load(this.files).then(() => {
-            let names = new Set();
+            let select = document.getElementById("source");
 
-            for (let csv of source.data.values())
-                for (let name of csv.keys())
-                    names.add(name);
+            select.innerHTML = "";
 
-            populate(document.getElementById("source"), names.keys())
+            for (let name of source.data.keys()) {
+                var option = document.createElement("option");
+                option.innerText = name;
+
+                select.appendChild(option);
+            }
         });
-
     }
 
-    function populate(select, names) {
-        select.innerHTML = "";
-
-        for (let name of names) {
-            var option = document.createElement("option");
-            option.innerText = name;
-
-            select.appendChild(option);
-        }
-    }
-
-
-    let indie = null;
-    let dependent1 = null;
+    let indie = [];
+    let dependent1 = [];
+    let dependent2 = [];
 
     function set() {
         let select = document.getElementById("source");
@@ -129,30 +128,39 @@ var controller = (function () {
         if (select.selectedIndex == -1)
             return;
 
-        let dest = null;
+        let dest;
+        let selected = [];
 
         switch (this.id) {
             case "setX":
                 dest = document.getElementById("independent");
+
+                indie = selected;
                 break;
             case "setY1":
                 dest = document.getElementById("dependent1");
+
+                dependent1 = selected;
                 break;
             case "setY2":
                 dest = document.getElementById("dependent2");
                 break;
         }
 
-        dest.innerHTML = "";
-
         let name = select.options[select.selectedIndex].innerText;
+        let list = source.data.get(name);
 
-        for (let entry of source.data.entries()) {
-            if (!(entry[1]).has(name))
-                return;
+        selected.title = name;
+
+        dest.innerHTML = "";
+        for (let i of list) {
+            selected.push({
+                data: i.data,
+                color: source.color.get(i.from)
+            })
 
             let option = document.createElement("option");
-            option.style.color = source.color.get(entry[1]);
+            option.style.color = source.color.get(i.from);
             option.innerText = name;
 
             dest.appendChild(option);
@@ -162,15 +170,7 @@ var controller = (function () {
     }
 
     function chart() {
-        let independent = document.getElementById("independent").options;
-        let dependent1 = document.getElementById("dependent1").options;
-        //let dependent2 = document.getElementById("dependent2").options;
-
-        //if (dependent1.length > 0) {
-        if (independent.length > 0 && dependent1.length > 0) {
-            let x = source.data.get(independent[0].innerText);
-            let y = source.data.get(dependent1[0].innerText);
-
+        if (indie.length > 0 && dependent1.length > 0) {
             /* let x = [];
  
              for (let i = 0; i < y.length; i++)
@@ -188,8 +188,8 @@ var controller = (function () {
             lineChart = new LineChart(ctx);
 
             lineChart.draw(
-                x,
-                y
+                indie,
+                dependent1
             );
 
         }
@@ -211,8 +211,8 @@ function LineChart(ctx) {
     const CANVAS_WIDTH = ctx.canvas.width;
     const CANVAS_HEIGHT = ctx.canvas.height;
 
-    const left = CANVAS_WIDTH * 0.05;
-    const bottom = CANVAS_HEIGHT * 0.9;
+    const left = CANVAS_WIDTH * 0.07;
+    const bottom = CANVAS_HEIGHT * 0.85;
 
     const top = CANVAS_HEIGHT * 0.1;
     const right = CANVAS_WIDTH * 0.95;
@@ -220,15 +220,24 @@ function LineChart(ctx) {
     const width = right - left;
     const height = bottom - top;
 
-    function draw(x, y) {
+    function applyToAll(all, func) {
+        let results = [];
+
+        for (let arr of all)
+            results.push(func.apply(null, arr.data));
+
+        return func.apply(null, results);
+    }
+
+    function draw(indie, dependent1) {
         let xAxis = Axis(width, {
-            min: Math.min.apply(null, x),
-            max: Math.max.apply(null, x)
+            min: Math.min.apply(null, indie[0].data),
+            max: Math.max.apply(null, indie[0].data)
         });
 
         let yAxis = Axis(height, {
-            min: Math.min.apply(null, y),
-            max: Math.max.apply(null, y)
+            min: applyToAll(dependent1, Math.min),
+            max: applyToAll(dependent1, Math.max)
         });
 
         this.xAxis = xAxis;
@@ -243,16 +252,41 @@ function LineChart(ctx) {
                 }
                 */
 
-        ctx.strokeStyle = 'blue';
-
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = "black";
         ctx.beginPath();
-        ctx.moveTo(left + xAxis.distance(x[0]), bottom - yAxis.distance(y[0]));
-
-        for (let i = 1; i < y.length; i++) {
-            ctx.lineTo(left + xAxis.distance(x[i]), bottom - yAxis.distance(y[i]));
-        }
-
+        ctx.moveTo(left, top);
+        ctx.lineTo(left, bottom);
+        ctx.lineTo(right, bottom);
         ctx.stroke();
+
+        ctx.save();
+        ctx.rotate(3 * Math.PI / 2);
+        ctx.textAlign = "center";
+        ctx.fillStyle = "black";
+        ctx.fillText(dependent1.title, -CANVAS_HEIGHT / 2, CANVAS_WIDTH * 0.05);
+        ctx.restore();
+
+        ctx.textAlign = "center";
+        ctx.fillText(indie.title, CANVAS_WIDTH / 2, CANVAS_HEIGHT * 0.9);
+        ctx.textAlign = "start";
+
+        ctx.lineWidth = 2;
+
+        for (let { data: y, color } of dependent1) {
+            let x = indie[0].data;
+
+            ctx.strokeStyle = color;
+
+            ctx.beginPath();
+            ctx.moveTo(left + xAxis.distance(x[0]), bottom - yAxis.distance(y[0]));
+
+            for (let i = 1; i < y.length; i++) {
+                ctx.lineTo(left + xAxis.distance(x[i]), bottom - yAxis.distance(y[i]));
+            }
+
+            ctx.stroke();
+        }
     }
 
     return {
