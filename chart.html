@@ -8,21 +8,42 @@
 </head>
 
 <body>
+
     <input id="chooser" type="file" />
 
     <div id="content">
         <div class="selectBox">
+            <div class="selectTitle">Source</div>
+            <select id="source" size="20"></select>
+            <input id="setX" type="button" value="Set As X">
+            <input id="setY1" type="button" value="Set As Y1">
+            <input id="setY2" type="button" value="Set As Y2">
+        </div>
+
+        <div class="selectBox">
             <div class="selectTitle">X</div>
             <select id="independent" size="20"></select>
+            <input type="button" value="Remove">
         </div>
 
         <div class="selectBox">
             <div class="selectTitle">Y</div>
-            <select id="dependent" size="20"></select>
+            <select id="dependent1" size="20"></select>
+            <input type="button" value="Remove">
+        </div>
+
+        <div class="selectBox">
+            <div class="selectTitle">Y2</div>
+            <select id="dependent2" size="20"></select>
+            <input type="button" value="Remove">
         </div>
     </div>
 
-    <canvas id="chart" width="1200" height="150"></canvas>
+    <div id="control">
+
+    </div>
+
+    <canvas id="chart" width="500" height="300"></canvas>
 
 </body>
 
