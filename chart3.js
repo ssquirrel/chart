@@ -220,6 +220,7 @@ function LineChart(ctx) {
     const width = right - left;
     const height = bottom - top;
 
+
     function applyToAll(all, func) {
         let results = [];
 
@@ -252,12 +253,21 @@ function LineChart(ctx) {
                 }
                 */
 
-        ctx.lineWidth = 2;
-        ctx.strokeStyle = "black";
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = "grey";
+
         ctx.beginPath();
-        ctx.moveTo(left, top);
-        ctx.lineTo(left, bottom);
-        ctx.lineTo(right, bottom);
+
+        for (let i = 0; i <= xAxis.interval; ++i) {
+            ctx.moveTo(left + 0.5 + Math.floor(i * xAxis.length / xAxis.interval), top);
+            ctx.lineTo(left + 0.5 + Math.floor(i * xAxis.length / xAxis.interval), bottom + 3);
+        }
+
+        for (let i = 0; i <= yAxis.interval; ++i) {
+            ctx.moveTo(left - 3, bottom + 0.5 - Math.floor(i * yAxis.length / yAxis.interval));
+            ctx.lineTo(right, bottom + 0.5 - Math.floor(i * yAxis.length / yAxis.interval));
+        }
+
         ctx.stroke();
 
         ctx.save();
@@ -268,10 +278,14 @@ function LineChart(ctx) {
         ctx.restore();
 
         ctx.textAlign = "center";
-        ctx.fillText(indie.title, CANVAS_WIDTH / 2, CANVAS_HEIGHT * 0.9);
-        ctx.textAlign = "start";
+        for (let i = 0; i <= xAxis.interval; ++i) {
+            ctx.fillText(xAxis.min + xAxis.tick * i,
+                left + i * xAxis.length / xAxis.interval,
+                CANVAS_HEIGHT * 0.9);
+        }
 
-        ctx.lineWidth = 2;
+        ctx.fillText(indie.title, CANVAS_WIDTH / 2, CANVAS_HEIGHT * 0.95);
+        ctx.textAlign = "start";
 
         for (let { data: y, color } of dependent1) {
             let x = indie[0].data;
