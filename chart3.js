@@ -1,6 +1,21 @@
 "use strict";
 
+
 document.addEventListener("DOMContentLoaded", function () {
+
+    let canvas = document.getElementById("chart");
+    let ctx = canvas.getContext("2d");
+
+    const width = canvas.width;
+    const height = canvas.height;
+
+    ctx.clearRect(0, 0, width, height);
+
+    lineChart = LineChart(ctx);
+    lineChart.drawGrid();
+});
+
+/*
     document.getElementById("chooser").addEventListener("change", controller.load);
     document.getElementById("setX").addEventListener("click", controller.set);
     document.getElementById("setY1").addEventListener("click", controller.set);
@@ -26,12 +41,6 @@ var source = (function () {
             }
 
             var file = files[0];
-
-            if (data.has(file.name)) {
-                alert("This file is already loaded!");
-                return;
-            }
-
             var reader = new FileReader();
             reader.addEventListener("load", function () {
                 parseCSV(file.name, this.result);
@@ -55,14 +64,13 @@ var source = (function () {
         let units = lines[1].split(",");
 
         let cols = [];
-
         for (let i = 0; i < names.length; i++)
             cols.push([]);
 
-        for (let i = IGNORE_FIRST_N; i < lines.length; i++) {
+        for (let i = IGNORE_FIRST_N; i < lines.length; ++i) {
             var line = lines[i].split(",");
 
-            for (let k = 0; k < line.length; k++) {
+            for (let k = 0; k < line.length; ++k) {
                 if (cols[k].length != i - IGNORE_FIRST_N)
                     continue;
 
@@ -81,17 +89,17 @@ var source = (function () {
                 continue;
 
             let col = {
-                from: filename,
+                unit: units[i],
                 data: cols[i]
             };
 
-            let list = data.get(names[i]);
-            if (!list) {
-                list = [];
-                data.set(names[i], list);
+            let map = data.get(names[i]);
+            if (!map) {
+                map = new Map();
+                data.set(names[i], map);
             }
 
-            list.push(col);
+            map.set(filename, col);
         }
     }
 
@@ -153,7 +161,7 @@ var controller = (function () {
         selected.title = name;
 
         dest.innerHTML = "";
-        for (let i of list) {
+        for (let [from, data] of list) {
             selected.push({
                 data: i.data,
                 color: source.color.get(i.from)
@@ -175,7 +183,6 @@ var controller = (function () {
  
              for (let i = 0; i < y.length; i++)
                  x.push(i);
-             */
 
             let canvas = document.getElementById("chart");
             let ctx = canvas.getContext("2d");
@@ -200,8 +207,51 @@ var controller = (function () {
         set: set
     }
 })();
-
+*/
 var lineChart;
+
+class Axis {
+    constructor(axis) {
+        let min = axis.min;
+        let max = axis.max;
+        let interval = axis.interval;
+        let ticks = 7;
+
+        let diff = max - min;
+
+        if (interval == 0) {
+            interval = findInterval(diff / (ticks - 1));
+            min = Math.floor(min / ticks) * ticks;
+            max = min + interval * ticks;
+        }
+        else {
+            ticks = Math.ceil(diff / interval) + 1;
+        }
+
+        this.min = min;
+        this.max = max;
+        this.interval = interval;
+        this.ticks = ticks;
+
+        this.length = axis.length;
+        this.title = axis.title;
+        this.unit = axis.unit;
+        this.data = axis.data;
+    }
+
+    tick(idx) {
+        if (idx < 0 || idx >= this.ticks)
+            throw "max:" + this.ticks + " tried:" + idx;
+
+        let val = this.min + idx * this.interval;
+
+        return val > this.max ? this.max : val;
+    }
+
+    distance(val) {
+        return this.length / (this.max - this.min) * (val - this.min);
+    }
+}
 
 /**
  * 
@@ -211,16 +261,94 @@ function LineChart(ctx) {
     const CANVAS_WIDTH = ctx.canvas.width;
     const CANVAS_HEIGHT = ctx.canvas.height;
 
-    const left = CANVAS_WIDTH * 0.07;
-    const bottom = CANVAS_HEIGHT * 0.85;
+    const left = Math.floor(CANVAS_WIDTH * 0.15) + 0.5;
+    const bottom = Math.floor(CANVAS_HEIGHT * 0.85) + 0.5;
 
-    const top = CANVAS_HEIGHT * 0.1;
-    const right = CANVAS_WIDTH * 0.95;
+    const top = Math.floor(CANVAS_HEIGHT * 0.1) + 0.5;
+    const right = Math.floor(CANVAS_WIDTH * 0.85) + 0.5;
 
     const width = right - left;
     const height = bottom - top;
 
+    const font = "13px sans-serif";
 
+    const title_x_h = bottom + 30;
+    const lable_x_h = bottom + 15;
+
+    let xAxis = new Axis({
+        min: 0,
+        max: 50,
+        interval: 10,
+        length: width,
+        title: "A very good x-title"
+    });
+
+    let yAxis = [new Axis({
+        length: height,
+        min: 0,
+        max: 50,
+        interval: 10,
+        title: "A very good y-title"
+    })];
+
+    function drawGrid() {
+        const overflow_v = 4.5;
+        const overflow_h = -4.5;
+
+        let x = xAxis;
+        let y = yAxis[0];
+
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = "grey";
+
+        ctx.font = font;
+        ctx.fillStyle = "black";
+        ctx.textAlign = "right";
+        ctx.textBaseline = "middle"
+
+        let lable_y_len = 0;
+
+        for (let i = 0; i < y.ticks; ++i) {
+            let val = y.tick(i)
+            let h = bottom - Math.round(y.distance(val));
+            ctx.moveTo(left + overflow_h, h);
+            ctx.lineTo(right, h);
+
+            ctx.fillText(val, left + overflow_h, h);
+
+            let len = ctx.measureText(val).width;
+            if (len > lable_y_len)
+                lable_y_len = len;
+        }
+
+        ctx.textAlign = "center";
+        ctx.textBaseline = "alphabetic";
+
+
+
+        for (let i = 0; i < x.ticks; ++i) {
+            let val = x.tick(i);
+            let w = left + Math.round(x.distance(val));
+            ctx.moveTo(w, top);
+            ctx.lineTo(w, bottom + overflow_v);
+
+            ctx.fillText(val, w, lable_x_h);
+        }
+
+        ctx.fillText(x.title, left + x.length / 2, title_x_h);
+
+        ctx.rotate(3 * Math.PI / 2);
+        ctx.fillText(y.title, -(top + y.length / 2), left - lable_y_len + overflow_h * 3);
+        ctx.rotate(-3 * Math.PI / 2);
+
+        ctx.stroke();
+    }
+
+    return {
+        drawGrid: drawGrid
+    }
+}
+/*
     function applyToAll(all, func) {
         let results = [];
 
@@ -244,14 +372,14 @@ function LineChart(ctx) {
         this.xAxis = xAxis;
         this.yAxis = yAxis;
 
-        /*
+        
                 for (let i = 0; i < xAxis.interval; i++) {
                     ctx.beginPath();
                     ctx.moveTo(left + i * width / xAxis.interval, top);
                     ctx.lineTo(left + i * width / xAxis.interval, bottom);
                     ctx.stroke();
                 }
-                */
+                
 
         ctx.lineWidth = 1;
         ctx.strokeStyle = "grey";
@@ -307,36 +435,9 @@ function LineChart(ctx) {
         draw: draw
     };
 }
+*/
 
-function Axis(length, data) {
-    const MIN_INTERVAL = 6;
-    const MAX_TICK_LENGTH = 40;
-
-    /*const interval = Math.max(MIN_INTERVAL,
-        Math.floor(length / MAX_TICK_LENGTH));*/
-
-    const interval = 6;
-
-    let diff = data.max - data.min;
-    let tick = findTick(diff / interval);
-    let min = Math.floor(data.min / tick) * tick;
-    let max = min + interval * tick;
-
-    function distance(val) {
-        return length / (max - min) * (val - min);
-    }
-
-    return {
-        length: length,
-        interval: interval,
-        tick: tick,
-        min: min,
-        max: max,
-        distance: distance
-    };
-}
-
-function findTick(val) {
+function findInterval(val) {
     const ticks = [1, 2, 5, 10, 25];
 
     let scale = 1;
