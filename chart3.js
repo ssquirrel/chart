@@ -1,21 +1,12 @@
 "use strict";
 
-
 document.addEventListener("DOMContentLoaded", function () {
-
     let canvas = document.getElementById("chart");
     let ctx = canvas.getContext("2d");
 
-    const width = canvas.width;
-    const height = canvas.height;
 
-    ctx.clearRect(0, 0, width, height);
+    (new LineChart(ctx)).drawGrid();
 
-    lineChart = LineChart(ctx);
-    lineChart.drawGrid();
-});
-
-/*
     document.getElementById("chooser").addEventListener("change", controller.load);
     document.getElementById("setX").addEventListener("click", controller.set);
     document.getElementById("setY1").addEventListener("click", controller.set);
@@ -23,11 +14,13 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 var source = (function () {
-    const COLORS = ["red", "green", "blue", "orange"];
+    const colors = ["red", "green", "blue", "orange"];
 
     let index = 0;
-    let color = new Map();
-    let data = new Map();
+    let filenames = new Array(4);
+
+    let units = new Map();
+    let CSVs = new Map();
 
 
     function load(files) {
@@ -35,13 +28,19 @@ var source = (function () {
             if (files.length == 0)
                 return;
 
-            if (color.size == COLORS.length) {
+            if (CSVs.size == colors.length) {
                 alert("enough!")
                 return;
             }
 
-            var file = files[0];
-            var reader = new FileReader();
+            let file = files[0];
+
+            if (CSVs.has(file.name)) {
+                alert("This file is already loaded!");
+                return;
+            }
+
+            let reader = new FileReader();
             reader.addEventListener("load", function () {
                 parseCSV(file.name, this.result);
                 resolve();
@@ -53,10 +52,6 @@ var source = (function () {
 
     function parseCSV(filename, result) {
         const IGNORE_FIRST_N = 3;
-
-
-        color.set(filename, COLORS[(index++) % COLORS.length]);
-
 
         let lines = result.split("\r\n");
 
@@ -84,6 +79,8 @@ var source = (function () {
 
         }
 
+        let csv = new Map();
+
         for (let i = 0; i < names.length; ++i) {
             if (cols[i].length == 0)
                 continue;
@@ -93,19 +90,32 @@ var source = (function () {
                 data: cols[i]
             };
 
-            let map = data.get(names[i]);
-            if (!map) {
-                map = new Map();
-                data.set(names[i], map);
-            }
+            csv.set(names[i], col);
 
-            map.set(filename, col);
+            varNames.add(names[i]);
         }
+
+        filenames[index++ % colors.length] = filename;
+        CSVs.set(filename, csv);
+    }
+
+    function findColor(filename) {
+        let idx = filenames.indexOf(filename);
+
+        return colors[idx];
+    }
+
+    function findFilename(color) {
+        let idx = colors.indexOf(color);
+
+        return filenames[idx];
     }
 
     return {
-        data: data,
-        color: color,
+        varNames: filenames,
+        data: CSVs,
+        findColor: findColor,
+        findFilename: findFilename,
         load: load
     }
 })();
@@ -117,7 +127,7 @@ var controller = (function () {
 
             select.innerHTML = "";
 
-            for (let name of source.data.keys()) {
+            for (let name of source.varNames.values()) {
                 var option = document.createElement("option");
                 option.innerText = name;
 
@@ -126,10 +136,6 @@ var controller = (function () {
         });
     }
 
-    let indie = [];
-    let dependent1 = [];
-    let dependent2 = [];
-
     function set() {
         let select = document.getElementById("source");
 
@@ -137,18 +143,13 @@ var controller = (function () {
             return;
 
         let dest;
-        let selected = [];
 
         switch (this.id) {
             case "setX":
                 dest = document.getElementById("independent");
-
-                indie = selected;
                 break;
             case "setY1":
                 dest = document.getElementById("dependent1");
-
-                dependent1 = selected;
                 break;
             case "setY2":
                 dest = document.getElementById("dependent2");
@@ -156,33 +157,56 @@ var controller = (function () {
         }
 
         let name = select.options[select.selectedIndex].innerText;
-        let list = source.data.get(name);
-
-        selected.title = name;
 
         dest.innerHTML = "";
-        for (let [from, data] of list) {
-            selected.push({
-                data: i.data,
-                color: source.color.get(i.from)
-            })
+
+        for (let [filename, csv] of source.data) {
+            if (!csv.has(name))
+                continue;
 
             let option = document.createElement("option");
-            option.style.color = source.color.get(i.from);
+            option.style.color = source.findColor(filename);
             option.innerText = name;
 
             dest.appendChild(option);
         }
 
-        chart();
+        //chart();
+    }
+
+    function selectValues(select, length) {
+        let result = [];
+
+        for (let i; i < length; ++i) {
+            let option = select[i];
+
+            let color = option.style.color;
+            let filename = source.findFilename(color);
+
+            result.push({
+                color: color,
+                values: source.data.get(filename).get(option.innerText)
+            });
+        }
+
+        return result;
     }
 
     function chart() {
-        if (indie.length > 0 && dependent1.length > 0) {
-            /* let x = [];
- 
-             for (let i = 0; i < y.length; i++)
-                 x.push(i);
+        let selectX = document.getElementById("independent");
+        let selectY = document.getElementById("dependent1");
+
+
+        if (selectX.length > 0 && selectY.length > 0) {
+            let y1;
+
+            let selectY1 = document.getElementById("dependent2");
+            if (selectY1.length != 0) {
+                y1 = {
+                    title: selectY[0].innerText,
+                    data: selectValues(selectY1, selectY1.length)
+                };
+            }
 
             let canvas = document.getElementById("chart");
             let ctx = canvas.getContext("2d");
@@ -192,14 +216,19 @@ var controller = (function () {
 
             ctx.clearRect(0, 0, width, height);
 
-            lineChart = new LineChart(ctx);
-
-            lineChart.draw(
-                indie,
-                dependent1
-            );
-
+            (new LineChart(ctx)).draw({
+                x: {
+                    title: selectX[0].innerText,
+                    data: selectValues(selectX, 1)
+                },
+                y: {
+                    title: selectY[0].innerText,
+                    data: selectValues(selectY, selectY.length)
+                },
+                y1: y1
+            });
         }
+
     }
 
     return {
@@ -207,22 +236,37 @@ var controller = (function () {
         set: set
     }
 })();
-*/
-var lineChart;
 
 class Axis {
     constructor(axis) {
+        const MIN_TICKS = 5;
+        const MAX_TICKS = 9;
+
         let min = axis.min;
         let max = axis.max;
         let interval = axis.interval;
-        let ticks = 7;
+        let ticks = MIN_TICKS;
 
         let diff = max - min;
 
         if (interval == 0) {
-            interval = findInterval(diff / (ticks - 1));
-            min = Math.floor(min / ticks) * ticks;
-            max = min + interval * ticks;
+
+            for (; ticks < MAX_TICKS; ++ticks){
+                let count = ticks - 1;
+
+                interval = findInterval(diff / count);
+                min = Math.floor(min / interval) * interval;
+                max = min + interval * count;
+
+                if(axis.max >= max || axis.max + interval > max)
+                    break;
+            }
+
+
+            if (max < axis.max) {
+                max += interval;
+                ++ticks;
+            }
         }
         else {
             ticks = Math.ceil(diff / interval) + 1;
@@ -285,25 +329,19 @@ function LineChart(ctx) {
     const height = bottom - top;
 
     let xAxis = new Axis({
-        min: 600,
-        max: 1200,
-        interval: 100,
+        min: 2,
+        max: 14,
+        interval: 0,
         length: width,
-        title: "A very good x-title"
+        title: "A very good x-title",
     });
 
     let yAxis = [new Axis({
-        min: 1,
-        max: 1.5,
-        interval: 0.1,
+        min: 130.5,
+        max: 138.5,
+        interval: 0,
         length: height,
-        title: "A very good x-title"
-    }), new Axis({
-        min: 1,
-        max: 4,
-        interval: 0.5,
-        length: height,
-        title: "T_DEVF_Bypasss_IOH"
+        title: "A very good x-title",
     })];
 
     function drawGridY(y, left, right, lable_x) {
@@ -324,6 +362,12 @@ function LineChart(ctx) {
         }
 
         return lable_len;
+    }
+
+    function drawTitle(axis, x, y) {
+        let unit = axis.unit ? axis.unit : "-";
+
+        ctx.fillText(axis.title + "[" + unit + "]", x, y);
     }
 
     function drawGrid() {
@@ -375,19 +419,18 @@ function LineChart(ctx) {
             ctx.fillText(x.lable(i), w, lable_x_h);
         }
 
-        ctx.fillText(x.title, left + x.length / 2, title_x_h);
-
+        drawTitle(x, left + x.length / 2, title_x_h);
 
         ctx.rotate(3 * Math.PI / 2);
         ctx.textBaseline = "bottom";
-        ctx.fillText(y.title,
+        drawTitle(y,
             -(top + y.length / 2),
             left - overflow - lable_y_len - lable_y_offset * 2);
 
         if (y1) {
             ctx.textBaseline = "top";
 
-            ctx.fillText(y1.title,
+            drawTitle(y1,
                 -(top + y.length / 2),
                 right + overflow + lable_y_len_r + lable_y_offset * 2);
         }
@@ -396,9 +439,37 @@ function LineChart(ctx) {
         ctx.stroke();
     }
 
-    return {
-        drawGrid: drawGrid
+    function createAxis(init) {
+        return new Axis({
+            min: Math.min.apply(null, init.data.map((elem) => {
+                return Math.min.apply(elem.values);
+            })),
+            max: Math.max.apply(null, init.data.map((elem) => {
+                return Math.max.apply(elem.values);
+            })),
+            interval: 0,
+
+        });
     }
+
+    function draw({ x, y, y1 }) {
+        xAxis = new Axis({
+            min: Math.min.apply(null, x.data.map((elem) => {
+                return Math.min.apply(elem.values);
+            })),
+            max: 50,
+            interval: 10,
+            length: width,
+            title: "A very good x-title",
+        });
+
+
+    }
+
+    return {
+        draw: draw,
+        drawGrid: drawGrid
+    };
 }
 
 function findInterval(val) {
