@@ -233,6 +233,10 @@ class Axis {
         this.interval = interval;
         this.ticks = ticks;
 
+        this.decimal = 0;
+        if (!Number.isInteger(interval))
+            this.decimal = Math.abs(Math.floor(Math.log10(interval)));
+
         this.length = axis.length;
         this.title = axis.title;
         this.unit = axis.unit;
@@ -246,6 +250,16 @@ class Axis {
         let val = this.min + idx * this.interval;
 
         return val > this.max ? this.max : val;
+    }
+
+    tickPos(idx) {
+        return this.distance(this.tick(idx));
+    }
+
+    lable(idx) {
+        let val = this.tick(idx);
+
+        return val.toFixed(this.decimal);
     }
 
     distance(val) {
@@ -270,75 +284,113 @@ function LineChart(ctx) {
     const width = right - left;
     const height = bottom - top;
 
-    const font = "13px sans-serif";
-
-    const title_x_h = bottom + 30;
-    const lable_x_h = bottom + 15;
-
     let xAxis = new Axis({
-        min: 0,
-        max: 50,
-        interval: 10,
+        min: 600,
+        max: 1200,
+        interval: 100,
         length: width,
         title: "A very good x-title"
     });
 
     let yAxis = [new Axis({
+        min: 1,
+        max: 1.5,
+        interval: 0.1,
         length: height,
-        min: 0,
-        max: 50,
-        interval: 10,
-        title: "A very good y-title"
+        title: "A very good x-title"
+    }), new Axis({
+        min: 1,
+        max: 4,
+        interval: 0.5,
+        length: height,
+        title: "T_DEVF_Bypasss_IOH"
     })];
 
+    function drawGridY(y, left, right, lable_x) {
+        let lable_len = 0;
+
+        for (let i = 0; i < y.ticks; ++i) {
+            let h = bottom - Math.round(y.tickPos(i));
+            ctx.moveTo(left, h);
+            ctx.lineTo(right, h);
+
+            let lable = y.lable(i);
+
+            ctx.fillText(lable, lable_x, h);
+
+            let len = ctx.measureText(lable).width;
+            if (len > lable_len)
+                lable_len = len;
+        }
+
+        return lable_len;
+    }
+
     function drawGrid() {
-        const overflow_v = 4.5;
-        const overflow_h = -4.5;
+        const overflow = 4.5;
+
+        const font = "13px sans-serif";
+
+        const lable_y_offset = 2.5;
+
+        const lable_x_h = bottom + 14;
+        const title_x_h = lable_x_h + 15;
+
 
         let x = xAxis;
         let y = yAxis[0];
+        let y1 = yAxis[1];
 
         ctx.lineWidth = 1;
         ctx.strokeStyle = "grey";
 
         ctx.font = font;
         ctx.fillStyle = "black";
+
+
         ctx.textAlign = "right";
         ctx.textBaseline = "middle"
 
-        let lable_y_len = 0;
+        let lable_y_len = drawGridY(y,
+            left - overflow,
+            right,
+            left - overflow - lable_y_offset);
 
-        for (let i = 0; i < y.ticks; ++i) {
-            let val = y.tick(i)
-            let h = bottom - Math.round(y.distance(val));
-            ctx.moveTo(left + overflow_h, h);
-            ctx.lineTo(right, h);
+        let lable_y_len_r = 0;
+        if (y1) {
+            ctx.textAlign = "left";
 
-            ctx.fillText(val, left + overflow_h, h);
-
-            let len = ctx.measureText(val).width;
-            if (len > lable_y_len)
-                lable_y_len = len;
+            lable_y_len_r = drawGridY(y1,
+                right,
+                right + overflow,
+                right + overflow + lable_y_offset);
         }
 
         ctx.textAlign = "center";
-        ctx.textBaseline = "alphabetic";
-
-
-
         for (let i = 0; i < x.ticks; ++i) {
-            let val = x.tick(i);
-            let w = left + Math.round(x.distance(val));
+            let w = left + Math.round(x.tickPos(i));
             ctx.moveTo(w, top);
-            ctx.lineTo(w, bottom + overflow_v);
+            ctx.lineTo(w, bottom + overflow);
 
-            ctx.fillText(val, w, lable_x_h);
+            ctx.fillText(x.lable(i), w, lable_x_h);
         }
 
         ctx.fillText(x.title, left + x.length / 2, title_x_h);
 
+
         ctx.rotate(3 * Math.PI / 2);
-        ctx.fillText(y.title, -(top + y.length / 2), left - lable_y_len + overflow_h * 3);
+        ctx.textBaseline = "bottom";
+        ctx.fillText(y.title,
+            -(top + y.length / 2),
+            left - overflow - lable_y_len - lable_y_offset * 2);
+
+        if (y1) {
+            ctx.textBaseline = "top";
+
+            ctx.fillText(y1.title,
+                -(top + y.length / 2),
+                right + overflow + lable_y_len_r + lable_y_offset * 2);
+        }
         ctx.rotate(-3 * Math.PI / 2);
 
         ctx.stroke();
@@ -348,94 +400,6 @@ function LineChart(ctx) {
         drawGrid: drawGrid
     }
 }
-/*
-    function applyToAll(all, func) {
-        let results = [];
-
-        for (let arr of all)
-            results.push(func.apply(null, arr.data));
-
-        return func.apply(null, results);
-    }
-
-    function draw(indie, dependent1) {
-        let xAxis = Axis(width, {
-            min: Math.min.apply(null, indie[0].data),
-            max: Math.max.apply(null, indie[0].data)
-        });
-
-        let yAxis = Axis(height, {
-            min: applyToAll(dependent1, Math.min),
-            max: applyToAll(dependent1, Math.max)
-        });
-
-        this.xAxis = xAxis;
-        this.yAxis = yAxis;
-
-        
-                for (let i = 0; i < xAxis.interval; i++) {
-                    ctx.beginPath();
-                    ctx.moveTo(left + i * width / xAxis.interval, top);
-                    ctx.lineTo(left + i * width / xAxis.interval, bottom);
-                    ctx.stroke();
-                }
-                
-
-        ctx.lineWidth = 1;
-        ctx.strokeStyle = "grey";
-
-        ctx.beginPath();
-
-        for (let i = 0; i <= xAxis.interval; ++i) {
-            ctx.moveTo(left + 0.5 + Math.floor(i * xAxis.length / xAxis.interval), top);
-            ctx.lineTo(left + 0.5 + Math.floor(i * xAxis.length / xAxis.interval), bottom + 3);
-        }
-
-        for (let i = 0; i <= yAxis.interval; ++i) {
-            ctx.moveTo(left - 3, bottom + 0.5 - Math.floor(i * yAxis.length / yAxis.interval));
-            ctx.lineTo(right, bottom + 0.5 - Math.floor(i * yAxis.length / yAxis.interval));
-        }
-
-        ctx.stroke();
-
-        ctx.save();
-        ctx.rotate(3 * Math.PI / 2);
-        ctx.textAlign = "center";
-        ctx.fillStyle = "black";
-        ctx.fillText(dependent1.title, -CANVAS_HEIGHT / 2, CANVAS_WIDTH * 0.05);
-        ctx.restore();
-
-        ctx.textAlign = "center";
-        for (let i = 0; i <= xAxis.interval; ++i) {
-            ctx.fillText(xAxis.min + xAxis.tick * i,
-                left + i * xAxis.length / xAxis.interval,
-                CANVAS_HEIGHT * 0.9);
-        }
-
-        ctx.fillText(indie.title, CANVAS_WIDTH / 2, CANVAS_HEIGHT * 0.95);
-        ctx.textAlign = "start";
-
-        for (let { data: y, color } of dependent1) {
-            let x = indie[0].data;
-
-            ctx.strokeStyle = color;
-
-            ctx.beginPath();
-            ctx.moveTo(left + xAxis.distance(x[0]), bottom - yAxis.distance(y[0]));
-
-            for (let i = 1; i < y.length; i++) {
-                ctx.lineTo(left + xAxis.distance(x[i]), bottom - yAxis.distance(y[i]));
-            }
-
-            ctx.stroke();
-        }
-    }
-
-    return {
-        draw: draw
-    };
-}
-*/
 
 function findInterval(val) {
     const ticks = [1, 2, 5, 10, 25];
