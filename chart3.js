@@ -1,16 +1,333 @@
 "use strict";
 
+(function (window) {
+    class Axis {
+        constructor(axis) {
+            this.update(axis);
+        }
+
+        update(axis) {
+            const MIN_TICKS = 5;
+            const MAX_TICKS = 9;
+
+            let min = axis.min;
+            let max = axis.max;
+            let interval = axis.interval;
+            let ticks = MIN_TICKS;
+
+            let diff = max - min;
+
+            if (interval == 0) {
+
+                for (; ticks < MAX_TICKS; ++ticks) {
+                    let count = ticks - 1;
+
+                    interval = findInterval(diff / count);
+                    min = Math.floor(min / interval) * interval;
+                    max = min + interval * count;
+
+                    if (axis.max >= max || axis.max + interval > max)
+                        break;
+                }
+
+
+                if (max < axis.max) {
+                    max += interval;
+                    ++ticks;
+                }
+            }
+            else {
+                ticks = Math.ceil(diff / interval) + 1;
+            }
+
+            this.min = min;
+            this.max = max;
+            this.interval = interval;
+            this.ticks = ticks;
+
+            this.decimal = 0;
+            if (!Number.isInteger(interval))
+                this.decimal = Math.abs(Math.floor(Math.log10(interval)));
+
+
+            this.length = axis.length != undefined ? axis.length : this.length;
+            this.title = axis.title != undefined ? axis.title : this.title;
+            this.unit = axis.unit != undefined ? axis.unit : this.unit;
+            this.data = axis.data != undefined ? axis.data : this.data;
+        }
+
+        tick(idx) {
+            if (idx < 0 || idx >= this.ticks)
+                throw "max:" + this.ticks + " tried:" + idx;
+
+            let val = this.min + idx * this.interval;
+
+            return val > this.max ? this.max : val;
+        }
+
+        tickPos(idx) {
+            return this.distance(this.tick(idx));
+        }
+
+        lable(idx) {
+            let val = this.tick(idx);
+
+            return val.toFixed(this.decimal);
+        }
+
+        distance(val) {
+            return this.length / (this.max - this.min) * (val - this.min);
+        }
+    }
+
+    class LineChart {
+        constructor(w, h) {
+            this.w = w;
+            this.h = h;
+
+            this.left = Math.floor(w * 0.15) + 0.5;
+            this.bottom = Math.floor(h * 0.85) + 0.5;
+
+            this.top = Math.floor(h * 0.1) + 0.5;
+            this.right = Math.floor(w * 0.85) + 0.5;
+
+            this.width = this.right - this.left;
+            this.height = this.bottom - this.top;
+
+            /**
+             * 
+             * @type {CanvasRenderingContext2D} ctx 
+             */
+            this.ctx = null;
+
+            this.xAxis = new Axis({
+                min: 2,
+                max: 14,
+                interval: 0,
+                length: this.width,
+                title: "A very good x-title",
+            });
+
+            this.yAxis = [new Axis({
+                min: 0,
+                max: 50,
+                interval: 10,
+                length: this.height,
+                title: "A very good x-title",
+            })];
+        }
+
+        drawGridY(y, left, right, lable_x) {
+            const ctx = this.ctx;
+
+            let lable_len = 0;
+
+            for (let i = 0; i < y.ticks; ++i) {
+                let h = this.bottom - Math.round(y.tickPos(i));
+                ctx.moveTo(left, h);
+                ctx.lineTo(right, h);
+
+                let lable = y.lable(i);
+
+                ctx.fillText(lable, lable_x, h);
+
+                let len = ctx.measureText(lable).width;
+                if (len > lable_len)
+                    lable_len = len;
+            }
+
+            return lable_len;
+        }
+
+        drawTitle(axis, x, y) {
+            const ctx = this.ctx;
+
+            let unit = axis.unit ? axis.unit : "-";
+
+            ctx.fillText(axis.title + " [" + unit + "]", x, y);
+        }
+
+        drawGrid() {
+            const ctx = this.ctx;
+
+            const overflow = 4.5;
+
+            const font = "13px sans-serif";
+
+            const lable_x_h = this.bottom + 14;
+            const title_x_h = lable_x_h + 15;
+
+
+            let x = this.xAxis;
+            let y = this.yAxis[0];
+            let y1 = this.yAxis[1];
+
+            ctx.lineWidth = 1;
+            ctx.strokeStyle = "grey";
+
+            ctx.font = font;
+            ctx.fillStyle = "black";
+
+
+            ctx.textAlign = "right";
+            ctx.textBaseline = "middle"
+
+            ctx.beginPath();
+
+            let lable_y_len = this.drawGridY(y,
+                this.left - overflow,
+                this.right,
+                this.left - overflow * 1.5);
+
+            let lable_y_len_r = 0;
+            if (y1) {
+                ctx.textAlign = "left";
+
+                lable_y_len_r = this.drawGridY(y1,
+                    this.right,
+                    this.right + overflow,
+                    this.right + overflow * 1.5);
+            }
+
+            ctx.textAlign = "center";
+            for (let i = 0; i < x.ticks; ++i) {
+                let w = this.left + Math.round(x.tickPos(i));
+                ctx.moveTo(w, this.top);
+                ctx.lineTo(w, this.bottom + overflow);
+
+                ctx.fillText(x.lable(i), w, lable_x_h);
+            }
+
+            this.drawTitle(x, this.left + x.length / 2, title_x_h);
+
+            ctx.rotate(3 * Math.PI / 2);
+            ctx.textBaseline = "bottom";
+            this.drawTitle(y,
+                -(this.top + y.length / 2),
+                this.left - overflow * 2.5 - lable_y_len);
+
+            if (y1) {
+                ctx.textBaseline = "top";
+
+                this.drawTitle(y1,
+                    -(this.top + y.length / 2),
+                    this.right + overflow * 2.5 + lable_y_len_r);
+            }
+            ctx.rotate(-3 * Math.PI / 2);
+
+            ctx.stroke();
+        }
+
+        drawLine(yAxis) {
+            if (!yAxis.data)
+                return;
+
+            const ctx = this.ctx;
+
+            let x = this.xAxis.data[0].values;
+
+            for (let data of yAxis.data) {
+                ctx.beginPath();
+                ctx.strokeStyle = data.color;
+
+                let y = data.values;
+
+                ctx.moveTo(this.left + this.xAxis.distance(x[0]),
+                    this.bottom - yAxis.distance(y[0]));
+
+                for (let i = 1; i < y.length; ++i) {
+                    ctx.lineTo(this.left + this.xAxis.distance(x[i]),
+                        this.bottom - yAxis.distance(y[i]));
+                }
+
+                ctx.stroke();
+            }
+
+        }
+
+        draw() {
+            const ctx = this.ctx;
+
+            ctx.clearRect(0, 0, this.w, this.h);
+
+
+            this.drawGrid();
+
+            this.drawLine(this.yAxis[0]);
+            if (this.yAxis[1]) {
+                ctx.setLineDash([5, 5]);
+                this.drawLine(this.yAxis[1]);
+                ctx.setLineDash([]);
+            }
+
+        }
+
+        update({ x, y, y1 }) {
+            this.xAxis = createAxis(this.width, x);
+            this.yAxis[0] = createAxis(this.height, y);
+
+            if (y1)
+                this.yAxis[1] = createAxis(this.height, y1);
+            else
+                this.yAxis[1] = null;
+
+            this.draw();
+        }
+    }
+
+    function createAxis(length, init) {
+        return new Axis({
+            min: Math.min.apply(null, init.data.map((elem) => {
+                return Math.min.apply(null, elem.values);
+            })),
+            max: Math.max.apply(null, init.data.map((elem) => {
+                return Math.max.apply(null, elem.values);
+            })),
+            interval: 0,
+            length: length,
+            title: init.title,
+            unit: init.data[0].unit,
+            data: init.data
+        });
+    }
+
+    function findInterval(val) {
+        const ticks = [1, 2, 5, 10, 25];
+
+        let scale = 1;
+
+        if (val < ticks[0] || val > ticks[ticks.length - 1]) {
+            let magnitude = Math.floor(Math.log10(val));
+
+            scale = Math.pow(10, magnitude);
+        }
+
+        for (let tick of ticks)
+            if (val <= tick * scale)
+                return tick * scale;
+
+        throw "no proper tick found!";
+    }
+
+    window.Axis = Axis;
+    window.LineChart = LineChart;
+})(window);
+
+let lineChart;
+
 document.addEventListener("DOMContentLoaded", function () {
     let canvas = document.getElementById("chart");
     let ctx = canvas.getContext("2d");
 
-
-    (new LineChart(ctx)).drawGrid();
+    lineChart = new LineChart(canvas.width, canvas.height);
+    lineChart.ctx = ctx;
+    lineChart.drawGrid();
 
     document.getElementById("chooser").addEventListener("change", controller.load);
     document.getElementById("setX").addEventListener("click", controller.set);
     document.getElementById("setY1").addEventListener("click", controller.set);
     document.getElementById("setY2").addEventListener("click", controller.set);
+    document.getElementById("applyConfig").addEventListener("click", controller.config);
 });
 
 var source = (function () {
@@ -19,7 +336,7 @@ var source = (function () {
     let index = 0;
     let filenames = new Array(4);
 
-    let units = new Map();
+    let varNames = new Set();
     let CSVs = new Map();
 
 
@@ -112,7 +429,7 @@ var source = (function () {
     }
 
     return {
-        varNames: filenames,
+        varNames: varNames,
         data: CSVs,
         findColor: findColor,
         findFilename: findFilename,
@@ -171,25 +488,31 @@ var controller = (function () {
             dest.appendChild(option);
         }
 
-        //chart();
+        chart();
     }
 
     function selectValues(select, length) {
-        let result = [];
+        let data = [];
 
-        for (let i; i < length; ++i) {
+        for (let i = 0; i < length; ++i) {
             let option = select[i];
 
             let color = option.style.color;
             let filename = source.findFilename(color);
 
-            result.push({
+            let col = source.data.get(filename).get(option.innerText);
+
+            data.push({
                 color: color,
-                values: source.data.get(filename).get(option.innerText)
+                unit: col.unit,
+                values: col.data
             });
         }
 
-        return result;
+        return {
+            title: select[0].innerText,
+            data: data
+        };
     }
 
     function chart() {
@@ -202,290 +525,88 @@ var controller = (function () {
 
             let selectY1 = document.getElementById("dependent2");
             if (selectY1.length != 0) {
-                y1 = {
-                    title: selectY[0].innerText,
-                    data: selectValues(selectY1, selectY1.length)
-                };
+                y1 = selectValues(selectY1, selectY1.length);
             }
 
-            let canvas = document.getElementById("chart");
-            let ctx = canvas.getContext("2d");
-
-            const width = canvas.width;
-            const height = canvas.height;
-
-            ctx.clearRect(0, 0, width, height);
-
-            (new LineChart(ctx)).draw({
-                x: {
-                    title: selectX[0].innerText,
-                    data: selectValues(selectX, 1)
-                },
-                y: {
-                    title: selectY[0].innerText,
-                    data: selectValues(selectY, selectY.length)
-                },
+            lineChart.update({
+                x: selectValues(selectX, 1),
+                y: selectValues(selectY, selectY.length),
                 y1: y1
             });
-        }
 
+            let inputs = document.getElementsByClassName("axisConfig");
+
+            for (let input of inputs)
+                input.value = "";
+
+            inputs[0].value = lineChart.xAxis.min;
+            inputs[1].value = lineChart.xAxis.max;
+            inputs[2].value = lineChart.xAxis.interval;
+
+            inputs[3].value = lineChart.yAxis[0].min;
+            inputs[4].value = lineChart.yAxis[0].max;
+            inputs[5].value = lineChart.yAxis[0].interval;
+
+            if (y1) {
+                inputs[6].value = lineChart.yAxis[1].min;
+                inputs[7].value = lineChart.yAxis[1].max;
+                inputs[8].value = lineChart.yAxis[1].interval;
+            }
+        }
+    }
+
+    function config() {
+        let selectX = document.getElementById("independent");
+        let selectY = document.getElementById("dependent1");
+
+        if (selectX.length > 0 && selectY.length > 0) {
+
+            let inputs = document.getElementsByClassName("axisConfig");
+            {
+                let min = parseFloat(inputs[0].value);
+                let max = parseFloat(inputs[1].value);
+                let interval = parseFloat(inputs[2].value);
+
+                lineChart.xAxis.update({
+                    min: min,
+                    max: max,
+                    interval: interval
+                });
+            }
+
+            {
+                let min = parseFloat(inputs[3].value);
+                let max = parseFloat(inputs[4].value);
+                let interval = parseFloat(inputs[5].value);
+
+                lineChart.yAxis[0].update({
+                    min: min,
+                    max: max,
+                    interval: interval
+                });
+            }
+
+            let selectY1 = document.getElementById("dependent2");
+            if (selectY1.length != 0) {
+                let min = parseFloat(inputs[6].value);
+                let max = parseFloat(inputs[7].value);
+                let interval = parseFloat(inputs[8].value);
+
+                lineChart.yAxis[1].update({
+                    min: min,
+                    max: max,
+                    interval: interval
+                });
+            }
+
+
+            lineChart.draw();
+        }
     }
 
     return {
         load: load,
-        set: set
+        set: set,
+        config: config
     }
 })();
-
-class Axis {
-    constructor(axis) {
-        const MIN_TICKS = 5;
-        const MAX_TICKS = 9;
-
-        let min = axis.min;
-        let max = axis.max;
-        let interval = axis.interval;
-        let ticks = MIN_TICKS;
-
-        let diff = max - min;
-
-        if (interval == 0) {
-
-            for (; ticks < MAX_TICKS; ++ticks){
-                let count = ticks - 1;
-
-                interval = findInterval(diff / count);
-                min = Math.floor(min / interval) * interval;
-                max = min + interval * count;
-
-                if(axis.max >= max || axis.max + interval > max)
-                    break;
-            }
-
-
-            if (max < axis.max) {
-                max += interval;
-                ++ticks;
-            }
-        }
-        else {
-            ticks = Math.ceil(diff / interval) + 1;
-        }
-
-        this.min = min;
-        this.max = max;
-        this.interval = interval;
-        this.ticks = ticks;
-
-        this.decimal = 0;
-        if (!Number.isInteger(interval))
-            this.decimal = Math.abs(Math.floor(Math.log10(interval)));
-
-        this.length = axis.length;
-        this.title = axis.title;
-        this.unit = axis.unit;
-        this.data = axis.data;
-    }
-
-    tick(idx) {
-        if (idx < 0 || idx >= this.ticks)
-            throw "max:" + this.ticks + " tried:" + idx;
-
-        let val = this.min + idx * this.interval;
-
-        return val > this.max ? this.max : val;
-    }
-
-    tickPos(idx) {
-        return this.distance(this.tick(idx));
-    }
-
-    lable(idx) {
-        let val = this.tick(idx);
-
-        return val.toFixed(this.decimal);
-    }
-
-    distance(val) {
-        return this.length / (this.max - this.min) * (val - this.min);
-    }
-}
-
-/**
- * 
- * @param {CanvasRenderingContext2D} ctx 
- */
-function LineChart(ctx) {
-    const CANVAS_WIDTH = ctx.canvas.width;
-    const CANVAS_HEIGHT = ctx.canvas.height;
-
-    const left = Math.floor(CANVAS_WIDTH * 0.15) + 0.5;
-    const bottom = Math.floor(CANVAS_HEIGHT * 0.85) + 0.5;
-
-    const top = Math.floor(CANVAS_HEIGHT * 0.1) + 0.5;
-    const right = Math.floor(CANVAS_WIDTH * 0.85) + 0.5;
-
-    const width = right - left;
-    const height = bottom - top;
-
-    let xAxis = new Axis({
-        min: 2,
-        max: 14,
-        interval: 0,
-        length: width,
-        title: "A very good x-title",
-    });
-
-    let yAxis = [new Axis({
-        min: 130.5,
-        max: 138.5,
-        interval: 0,
-        length: height,
-        title: "A very good x-title",
-    })];
-
-    function drawGridY(y, left, right, lable_x) {
-        let lable_len = 0;
-
-        for (let i = 0; i < y.ticks; ++i) {
-            let h = bottom - Math.round(y.tickPos(i));
-            ctx.moveTo(left, h);
-            ctx.lineTo(right, h);
-
-            let lable = y.lable(i);
-
-            ctx.fillText(lable, lable_x, h);
-
-            let len = ctx.measureText(lable).width;
-            if (len > lable_len)
-                lable_len = len;
-        }
-
-        return lable_len;
-    }
-
-    function drawTitle(axis, x, y) {
-        let unit = axis.unit ? axis.unit : "-";
-
-        ctx.fillText(axis.title + "[" + unit + "]", x, y);
-    }
-
-    function drawGrid() {
-        const overflow = 4.5;
-
-        const font = "13px sans-serif";
-
-        const lable_y_offset = 2.5;
-
-        const lable_x_h = bottom + 14;
-        const title_x_h = lable_x_h + 15;
-
-
-        let x = xAxis;
-        let y = yAxis[0];
-        let y1 = yAxis[1];
-
-        ctx.lineWidth = 1;
-        ctx.strokeStyle = "grey";
-
-        ctx.font = font;
-        ctx.fillStyle = "black";
-
-
-        ctx.textAlign = "right";
-        ctx.textBaseline = "middle"
-
-        let lable_y_len = drawGridY(y,
-            left - overflow,
-            right,
-            left - overflow - lable_y_offset);
-
-        let lable_y_len_r = 0;
-        if (y1) {
-            ctx.textAlign = "left";
-
-            lable_y_len_r = drawGridY(y1,
-                right,
-                right + overflow,
-                right + overflow + lable_y_offset);
-        }
-
-        ctx.textAlign = "center";
-        for (let i = 0; i < x.ticks; ++i) {
-            let w = left + Math.round(x.tickPos(i));
-            ctx.moveTo(w, top);
-            ctx.lineTo(w, bottom + overflow);
-
-            ctx.fillText(x.lable(i), w, lable_x_h);
-        }
-
-        drawTitle(x, left + x.length / 2, title_x_h);
-
-        ctx.rotate(3 * Math.PI / 2);
-        ctx.textBaseline = "bottom";
-        drawTitle(y,
-            -(top + y.length / 2),
-            left - overflow - lable_y_len - lable_y_offset * 2);
-
-        if (y1) {
-            ctx.textBaseline = "top";
-
-            drawTitle(y1,
-                -(top + y.length / 2),
-                right + overflow + lable_y_len_r + lable_y_offset * 2);
-        }
-        ctx.rotate(-3 * Math.PI / 2);
-
-        ctx.stroke();
-    }
-
-    function createAxis(init) {
-        return new Axis({
-            min: Math.min.apply(null, init.data.map((elem) => {
-                return Math.min.apply(elem.values);
-            })),
-            max: Math.max.apply(null, init.data.map((elem) => {
-                return Math.max.apply(elem.values);
-            })),
-            interval: 0,
-
-        });
-    }
-
-    function draw({ x, y, y1 }) {
-        xAxis = new Axis({
-            min: Math.min.apply(null, x.data.map((elem) => {
-                return Math.min.apply(elem.values);
-            })),
-            max: 50,
-            interval: 10,
-            length: width,
-            title: "A very good x-title",
-        });
-
-
-    }
-
-    return {
-        draw: draw,
-        drawGrid: drawGrid
-    };
-}
-
-function findInterval(val) {
-    const ticks = [1, 2, 5, 10, 25];
-
-    let scale = 1;
-
-    if (val < ticks[0] || val > ticks[ticks.length - 1]) {
-        let magnitude = Math.floor(Math.log10(val));
-
-        scale = Math.pow(10, magnitude);
-    }
-
-    for (let tick of ticks)
-        if (val <= tick * scale)
-            return tick * scale;
-
-    throw "no proper tick found!";
-}
