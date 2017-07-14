@@ -72,6 +72,9 @@
         lable(idx) {
             let val = this.tick(idx);
 
+            if(this.decimal == 0)
+                return val.toString();
+
             return val.toFixed(this.decimal);
         }
 
