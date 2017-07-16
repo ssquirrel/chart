@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>demo</title>
+    <link rel="stylesheet" type="text/css" href="chart.css">
+    <script type="text/javascript" src="chart.js"></script>
+
+    <style rel="stylesheet" type="text/css" media="print">
+        @media print {
+            .selector-group,
+            #chooser,
+            #detail {
+                display: none !important;
+            }
+
+            #lengend {
+                position: absolute;
+                left: 20%;
+            }
+
+            .print-right {
+                position: absolute;
+                right: 0px;
+            }
+
+            #lengend-row,
+            .chart-row {
+                margin-top: 20px;
+            }
+
+             ::-webkit-input-placeholder {
+                /* WebKit browsers */
+                color: transparent;
+            }
+             :-moz-placeholder {
+                /* Mozilla Firefox 4 to 18 */
+                color: transparent;
+            }
+             ::-moz-placeholder {
+                /* Mozilla Firefox 19+ */
+                color: transparent;
+            }
+             :-ms-input-placeholder {
+                /* Internet Explorer 10+ */
+                color: transparent;
+            }
+        }
+    </style>
+
+</head>
+
+<body>
+
+    <table id="meta-table">
+        <tr class="meta-tr">
+            <td class="meta-td">Project Name</td>
+            <td class="meta-td" colspan="5">
+                <div class="meta-field" contenteditable="true"></div>
+            </td>
+        </tr>
+        <tr>
+            <td class="meta-td">Testing Task</td>
+            <td class="meta-td">
+                <div class="meta-field" contenteditable="true"></div>
+            </td>
+            <td class="meta-td">Engine Model</td>
+            <td class="meta-td">
+                <div class="meta-field" contenteditable="true"></div>
+            </td>
+            <td class="meta-td">Rated Power</td>
+            <td class="meta-td">
+                <div class="meta-field" contenteditable="true"></div>
+            </td>
+        </tr>
+        <tr>
+            <td class="meta-td">Testing Date</td>
+            <td class="meta-td">
+                <div class="meta-field" contenteditable="true"></div>
+            </td>
+            <td class="meta-td">Engine No.</td>
+            <td class="meta-td">
+                <div class="meta-field" contenteditable="true"></div>
+            </td>
+            <td class="meta-td">Engine Displacement</td>
+            <td class="meta-td">
+                <div class="meta-field" contenteditable="true"></div>
+            </td>
+        </tr>
+        <tr>
+            <td class="meta-td">Engine Running Time</td>
+            <td class="meta-td">
+                <div class="meta-field" contenteditable="true"></div>
+            </td>
+            <td class="meta-td">Fuel Type</td>
+            <td class="meta-td">
+                <div class="meta-field" contenteditable="true"></div>
+            </td>
+            <td class="meta-td">Test Data No.</td>
+            <td class="meta-td">
+                <div class="meta-field" contenteditable="true"></div>
+            </td>
+        </tr>
+    </table>
+
+    <input id="chooser" type="file" />
+
+    <div class="selector-group">
+        <div class="select-box">
+            <div class="select-title">Variables</div>
+            <select id="source" size="20" multiple></select>
+            <input id="setX" type="button" value="Set As X">
+            <input id="setY1" type="button" value="Set As Y">
+        </div>
+        <div class="select-box">
+            <div class="select-title">X</div>
+            <select id="independent" size="20"></select>
+            <input type="button" value="Remove"></div>
+        <div class="select-box">
+            <div class="select-title">Y</div>
+            <select id="dependent1" size="20"></select>
+            <input type="button" value="Remove">
+        </div>
+    </div>
+
+    <div id="lengend-row">
+        <table id="lengend">
+            <tr>
+                <td>
+                    <div class="lengend-type"></div>
+                </td>
+                <td class="lengend-text">
+                    <div contenteditable="true"></div>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <div class="lengend-type"></div>
+                </td>
+                <td class="lengend-text">
+                    <div contenteditable="true"></div>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <div class="lengend-type"></div>
+                </td>
+                <td class="lengend-text">
+                    <div contenteditable="true"></div>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <div class="lengend-type"></div>
+                </td>
+                <td class="lengend-text">
+                    <div contenteditable="true"></div>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="chart-row">
+        <div class="chart-box">
+            <input class="chart-title" type="text" placeholder="Title gose here..." />
+            <canvas class="chart" width="460" height="320">
+            </canvas>
+        </div>
+
+        <div class="chart-box print-right">
+            <input class="chart-title" type="text" placeholder="Title gose here..." />
+            <canvas class="chart" width="460" height="320">
+            </canvas>
+        </div>
+
+        <!--
+        <div id="detail">
+            <div id="which">Pick A Chart</div>
+            <input id="apply-config" type="button" value="Apply">
+
+            <table>
+                <caption id="x-title">X</caption>
+                <tr>
+                    <td>Min</td>
+                    <td><input class="axis-config" type="text"></td>
+                </tr>
+                <tr>
+                    <td>Max</td>
+                    <td><input class="axis-config" type="text"></td>
+                </tr>
+                <tr>
+                    <td>Interval</td>
+                    <td><input class="axis-config" type="text"></td>
+                </tr>
+            </table>
+            <table>
+                <caption id="y-title">Y1</caption>
+                <tr>
+                    <td>Min</td>
+                    <td><input class="axis-config" type="text"></td>
+                </tr>
+                <tr>
+                    <td>Max</td>
+                    <td><input class="axis-config" type="text"></td>
+                </tr>
+                <tr>
+                    <td>Interval</td>
+                    <td><input class="axis-config" type="text"></td>
+                </tr>
+            </table>
+        </div>
+        -->
+
+    </div>
+
+
+    <div class="chart-row">
+        <div class="chart-box">
+            <input class="chart-title" type="text" placeholder="Title gose here..." />
+            <canvas class="chart" width="460" height="320">
+            </canvas>
+        </div>
+
+        <div class="chart-box print-right">
+            <input class="chart-title" type="text" placeholder="Title gose here..." />
+            <canvas class="chart" width="460" height="320">
+            </canvas>
+        </div>
+    </div>
+
+</body>
+
+</html>
