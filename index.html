@@ -14,7 +14,8 @@
 
             .selector-group,
             #chooser,
-            .chart-edit {
+            .chart-edit,
+            #editor {
                 display: none !important;
             }
 
@@ -243,43 +244,48 @@
         </tr>
     </table>
 
-    <!--
-    <div id="detail">
-        <div id="which">Pick A Chart</div>
-        <input id="apply-config" type="button" value="Apply">
 
-        <table>
-            <caption id="x-title">X</caption>
-            <tr>
-                <td>Min</td>
-                <td><input class="axis-config" type="text"></td>
-            </tr>
-            <tr>
-                <td>Max</td>
-                <td><input class="axis-config" type="text"></td>
-            </tr>
-            <tr>
-                <td>Interval</td>
-                <td><input class="axis-config" type="text"></td>
-            </tr>
-        </table>
-        <table>
-            <caption id="y-title">Y1</caption>
-            <tr>
-                <td>Min</td>
-                <td><input class="axis-config" type="text"></td>
-            </tr>
-            <tr>
-                <td>Max</td>
-                <td><input class="axis-config" type="text"></td>
-            </tr>
-            <tr>
-                <td>Interval</td>
-                <td><input class="axis-config" type="text"></td>
-            </tr>
-        </table>
+    <div id="editor">
+        <canvas id="editor-chart" width="460" height="320"></canvas>
+
+        <div>
+            <div>
+                <input id="editor-config" type="button" value="Apply">
+                <input id="editor-ok" type="button" value="ok">
+            </div>
+            <table>
+                <caption id="x-title">X</caption>
+                <tr>
+                    <td>Min</td>
+                    <td><input class="axis-config" type="text"></td>
+                </tr>
+                <tr>
+                    <td>Max</td>
+                    <td><input class="axis-config" type="text"></td>
+                </tr>
+                <tr>
+                    <td>Interval</td>
+                    <td><input class="axis-config" type="text"></td>
+                </tr>
+            </table>
+            <table>
+                <caption id="y-title">Y1</caption>
+                <tr>
+                    <td>Min</td>
+                    <td><input class="axis-config" type="text"></td>
+                </tr>
+                <tr>
+                    <td>Max</td>
+                    <td><input class="axis-config" type="text"></td>
+                </tr>
+                <tr>
+                    <td>Interval</td>
+                    <td><input class="axis-config" type="text"></td>
+                </tr>
+            </table>
+        </div>
     </div>
--->
+
 
 </body>
 

@@ -2,7 +2,7 @@
 
 const data = require("./data.js");
 const LineChart = require("./lineChart.js");
-const Editor = require("./editor.js");
+//const Editor = require("./editor.js");
 
 const width = 460;
 const height = 320;
@@ -22,7 +22,7 @@ document.addEventListener("DOMContentLoaded", function () {
         charts[i].ctx = canvas.getContext("2d");
 
         buttons[i].addEventListener("click", function () {
-            Editor.start(charts[i]);
+            //Editor.start(charts[i]);
         });
     }
 
