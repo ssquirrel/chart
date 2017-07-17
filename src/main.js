@@ -2,6 +2,7 @@
 
 const data = require("./data.js");
 const LineChart = require("./lineChart.js");
+const Editor = require("./editor.js");
 
 const width = 460;
 const height = 320;
@@ -13,13 +14,22 @@ document.addEventListener("DOMContentLoaded", function () {
     document.getElementById("setX").addEventListener("click", setX);
     document.getElementById("setY1").addEventListener("click", setY1);
 
-    let canvases = document.getElementsByClassName("chart");
+    let buttons = document.querySelectorAll(".chart-edit");
+    let canvases = document.querySelectorAll(".chart");
     for (let i = 0; i < canvases.length; ++i) {
         let canvas = canvases[i];
 
         charts[i].ctx = canvas.getContext("2d");
+
+        buttons[i].addEventListener("click", function () {
+            Editor.start(charts[i]);
+        });
     }
 
+
+    window.addEventListener('popstate', function (event) {
+        alert(event.state);
+    });
 });
 
 function load() {
@@ -35,16 +45,26 @@ function load() {
             select.appendChild(option);
         }
 
+        let lengend = document.querySelector(".lengend");
+        lengend.innerHTML = "";
+
+        let template = document.getElementById("lengend-template");
+
         let i = 0;
-        let lengendTypes = document.getElementsByClassName("lengend-type");
-        let lengendTexts = document.getElementsByClassName("lengend-text");
         for (let [file, color] of data.files.entries()) {
-            lengendTypes[i].style.borderBottom = `1px solid ${color}`;
-            lengendTexts[i].firstElementChild.innerText = file;
+            let lengendType = template.content.querySelector(".lengend-type");
+            let lengendText = template.content.querySelector(".lengend-text");
+
+            lengendType.style.borderBottom = `1px solid ${color}`;
+            lengendText.firstElementChild.innerText = file;
+
+            let clone = document.importNode(template.content, true);
+            lengend.appendChild(clone);
 
             ++i;
         }
 
+        lengend.parentElement.style.height = `${i * 20 + 40}px`;
     });
 }
 
@@ -99,6 +119,6 @@ function chart() {
         charts[i].update({
             x: x,
             y: y
-        })
+        });
     }
 }

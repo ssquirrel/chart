@@ -1,4 +1,24 @@
-#meta-table{
+
+.left {
+  background: #d00;
+}
+
+.right {
+  background: #0d0;
+}
+
+.cell div {
+  display: inline-block;
+  background: #aaa;
+}
+
+.flex {
+  display: flex;
+  justify-content: space-between;
+}
+
+.meta-table{
+    display: block;
     border-collapse: collapse;
 }
 
@@ -33,14 +53,13 @@ select{
     text-align: center;
 }
 
-#lengend-row{
+.lengend-row{
     width: 100%;
-    height: 155px;
+    height: 100px;
 }
 
-#lengend{
+.lengend{
     width: 60%;
-    height: 150px;
     border: 1px solid;
     padding: 15px;
 }
@@ -61,24 +80,21 @@ select{
 
 .chart-row{
     width: 100%;
-    height: 350px;
+    height: 360px;
+    margin-top: 10px;
 }
 
-.chart-box, #detail{
+.chart-box{
     display :inline-block;
     vertical-align: top;
 }
 
-#detail{
-    margin-left: 10px;
-}
-
-#which {
-    font-size: 20px;
+.chart-control{
+  display: flex;
+  justify-content: space-between;
 }
 
 .chart-title{
-    display: block;
     border: 0px;
     font-size: 20px;
 }
