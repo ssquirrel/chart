@@ -10,7 +10,7 @@ module.exports = class LineChart {
         this.left = Math.floor(w * 0.15) + 0.5;
         this.bottom = Math.floor(h * 0.85) + 0.5;
 
-        this.top = Math.floor(h * 0.1) + 0.5;
+        this.top = Math.floor(h * 0.05) + 0.5;
         this.right = Math.floor(w * 0.85) + 0.5;
 
         this.width = this.right - this.left;
