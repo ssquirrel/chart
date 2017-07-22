@@ -2,57 +2,62 @@
 
 module.exports = class Axis {
     constructor(axis) {
+        this.min = 0;
+        this.max = 0;
+        this.interval = 0;
+        this.ticks = 0;
+        this.precision = 0;
+        this.length = 0;
+        this.title = 0;
+        this.data = null;
+
         this.update(axis);
     }
 
     update(axis) {
-        const MIN_TICKS = 5;
-        const MAX_TICKS = 9;
+        const diff = axis.max - axis.min;
 
-        let min = axis.min;
-        let max = axis.max;
-        let interval = axis.interval;
-        let ticks = MIN_TICKS;
+        if (axis.interval != 0) {
+            this.min = axis.min;
+            this.max = axis.max;
+            this.interval = axis.interval;
+            this.ticks = Math.ceil(diff / axis.interval) + 1;
 
-        let diff = max - min;
-
-        if (interval == 0) {
-
-            for (; ticks < MAX_TICKS; ++ticks) {
-                let count = ticks - 1;
-
-                interval = findInterval(diff / count);
-                min = Math.floor(min / interval) * interval;
-                max = min + interval * count;
-
-                if (axis.max >= max || axis.max + interval > max)
-                    break;
-            }
-
-
-            if (max < axis.max) {
-                max += interval;
-                ++ticks;
-            }
+            this.precision =
+                Math.max(decimal(this.min), decimal(this.max));
         }
         else {
-            ticks = Math.ceil(diff / interval) + 1;
+            const MIN_TICKS = 5;
+            const MAX_TICKS = 9;
+
+            for (let ticks = MIN_TICKS; ticks < MAX_TICKS; ++ticks) {
+                let count = ticks - 1;
+
+                let interval = findInterval(diff / count);
+                let min = Math.floor(axis.min / interval) * interval;
+                let max = min + interval * count;
+
+                if (Math.abs(max - axis.max) <= interval) {
+                    this.min = min;
+                    this.max = max;
+                    this.interval = interval;
+                    this.ticks = ticks;
+                    this.precision = decimal(this.interval);
+
+                    if (max < axis.max) {
+                        this.max += interval;
+                        this.ticks += 1;
+                    }
+
+                    break;
+                }
+            }
+
         }
 
-        this.min = min;
-        this.max = max;
-        this.interval = interval;
-        this.ticks = ticks;
-
-        this.decimal = 0;
-        if (!Number.isInteger(interval))
-            this.decimal = Math.abs(Math.floor(Math.log10(interval)));
-
-
-        this.length = axis.length != undefined ? axis.length : this.length;
-        this.title = axis.title != undefined ? axis.title : this.title;
-        this.unit = axis.unit != undefined ? axis.unit : this.unit;
-        this.data = axis.data != undefined ? axis.data : this.data;
+        this.length = axis.length !== undefined ? axis.length : this.length;
+        this.title = axis.title !== undefined ? axis.title : this.title;
+        this.data = axis.data !== undefined ? axis.data : this.data;
     }
 
     tick(idx) {
@@ -71,10 +76,7 @@ module.exports = class Axis {
     lable(idx) {
         let val = this.tick(idx);
 
-        if (this.decimal == 0)
-            return val.toString();
-
-        return val.toFixed(this.decimal);
+        return val.toFixed(this.precision);
     }
 
     distance(val) {
@@ -98,4 +100,12 @@ function findInterval(val) {
             return tick * scale;
 
     throw "no proper tick found!";
+}
+
+function decimal(num) {
+    if (Number.isInteger(num))
+        return 0;
+
+    let str = num.toString();
+    return str.length - str.indexOf(".") - 1;
 }
