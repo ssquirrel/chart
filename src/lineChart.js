@@ -23,17 +23,17 @@ module.exports = class LineChart {
         this.ctx = null;
 
         this.xAxis = new Axis({
-            min: 2,
-            max: 14,
+            min: -80000000,
+            max: -20000000,
             interval: 0,
             length: this.width,
             title: "A very good x-title",
         });
 
         this.yAxis = [new Axis({
-            min: 0,
-            max: 50,
-            interval: 10,
+            min: 0.000000125,
+            max: 0.000001,
+            interval: 0.000000125,
             length: this.height,
             title: "A very good x-title",
         })];
@@ -70,72 +70,101 @@ module.exports = class LineChart {
     }
 
     drawGrid() {
+        const overflow = 4;
+
         const ctx = this.ctx;
-
-        const overflow = 4.5;
-
-        const font = "13px sans-serif";
-
-        const lable_x_h = this.bottom + 14;
-        const title_x_h = lable_x_h + 15;
-
-
-        let x = this.xAxis;
-        let y = this.yAxis[0];
-        let y1 = this.yAxis[1];
-
         ctx.lineWidth = 1;
         ctx.strokeStyle = "grey";
-
-        ctx.font = font;
-        ctx.fillStyle = "black";
-
-
-        ctx.textAlign = "right";
-        ctx.textBaseline = "middle"
+        ctx.font = "15px Arial";
 
         ctx.beginPath();
 
-        let lable_y_len = this.drawGridY(y,
-            this.left - overflow,
-            this.right,
-            this.left - overflow * 1.5);
-
-        let lable_y_len_r = 0;
-        if (y1) {
-            ctx.textAlign = "left";
-
-            lable_y_len_r = this.drawGridY(y1,
-                this.right,
-                this.right + overflow,
-                this.right + overflow * 1.5);
-        }
-
-        ctx.textAlign = "center";
+        let x = this.xAxis;
         for (let i = 0; i < x.ticks; ++i) {
             let w = this.left + Math.round(x.tickPos(i));
             ctx.moveTo(w, this.top);
             ctx.lineTo(w, this.bottom + overflow);
-
-            ctx.fillText(x.lable(i), w, lable_x_h);
         }
 
-        this.drawTitle(x, this.left + x.length / 2, title_x_h);
-
-        ctx.rotate(3 * Math.PI / 2);
-        ctx.textBaseline = "bottom";
-        this.drawTitle(y,
-            -(this.top + y.length / 2),
-            this.left - overflow * 2.5 - lable_y_len);
-
-        if (y1) {
-            ctx.textBaseline = "top";
-
-            this.drawTitle(y1,
-                -(this.top + y.length / 2),
-                this.right + overflow * 2.5 + lable_y_len_r);
+        let y = this.yAxis[0];
+        for (let i = 0; i < y.ticks; ++i) {
+            let h = this.bottom - Math.round(y.tickPos(i));
+            ctx.moveTo(this.left - overflow, h);
+            ctx.lineTo(this.right, h);
         }
-        ctx.rotate(-3 * Math.PI / 2);
+
+        /*
+                ctx.textAlign = "right";
+                ctx.textBaseline = "middle"
+                for (let i = 0; i < y.ticks; ++i) {
+                    let h = this.bottom - Math.round(y.tickPos(i));
+                    ctx.fillText(y.lable(i), this.left - overflow * 1.5, h);
+                }
+        
+                ctx.textAlign = "center";
+                ctx.textBaseline = "top"
+                for (let i = 0; i < x.ticks; ++i) {
+                    let w = this.left + Math.round(x.tickPos(i));
+                    ctx.fillText(x.lable(i), w, this.bottom + overflow);
+                }
+        
+                this.drawTitle(x, this.left + x.length / 2, this.bottom + 20);
+        
+                
+                        ctx.font = font;
+                        ctx.fillStyle = "black";
+                        const font = "15px Arial";
+                
+        
+                
+                        let lable_y_len = this.drawGridY(y,
+                            this.left - overflow,
+                            this.right,
+                            this.left - overflow * 1.5);
+                
+                        let lable_y_len_r = 0;
+                        if (y1) {
+                            ctx.textAlign = "left";
+                
+                            lable_y_len_r = this.drawGridY(y1,
+                                this.right,
+                                this.right + overflow,
+                                this.right + overflow * 1.5);
+                        }
+                
+                        ctx.textAlign = "center";
+                        for (let i = 0; i < x.ticks; ++i) {
+                            let w = this.left + Math.round(x.tickPos(i));
+                            ctx.moveTo(w, this.top);
+                            ctx.lineTo(w, this.bottom + overflow);
+                
+                            ctx.fillText(x.lable(i), w, lable_x_h);
+                        }
+                
+                        this.drawTitle(x, this.left + x.length / 2, title_x_h);
+                
+                        ctx.rotate(3 * Math.PI / 2);
+                        ctx.textBaseline = "bottom";
+                        this.drawTitle(y,
+                            -(this.top + y.length / 2),
+                            this.left - overflow * 2.5 - lable_y_len);
+                
+                        if (y1) {
+                            ctx.textBaseline = "top";
+                
+                            this.drawTitle(y1,
+                                -(this.top + y.length / 2),
+                                this.right + overflow * 2.5 + lable_y_len_r);
+                        }
+                        ctx.rotate(-3 * Math.PI / 2);
+                */
+
+        const DIGIT_WIDTH = ctx.measureText("0").width;
+        const INTERVAL_x = this.width / (x.ticks - 1);
+        const INTERVAL_y = this.height / (y.ticks - 1);
+
+        let xLabels = this.xAxis.getLabels(INTERVAL_x / DIGIT_WIDTH);
+        let yLabels = this.yAxis[0].getLabels(INTERVAL_y / DIGIT_WIDTH);
 
         ctx.stroke();
     }

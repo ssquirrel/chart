@@ -97,6 +97,7 @@ select{
 .chart-title{
     border: 0px;
     font-size: 20px;
+    width: 350px;
 }
 
 .chart-title:focus {

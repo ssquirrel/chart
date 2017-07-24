@@ -33,6 +33,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
         charts[idx].draw();
     });
+
+    charts[0].draw();
 });
 
 function load() {
@@ -55,11 +57,11 @@ function load() {
 
         let i = 0;
         for (let [file, color] of data.files.entries()) {
-            let lengendType = template.content.querySelector(".lengend-type");
-            let lengendText = template.content.querySelector(".lengend-text");
+            let type = template.content.querySelector(".lengend-type");
+            let text = template.content.querySelector(".lengend-text");
 
-            lengendType.style.borderBottom = `1px solid ${color}`;
-            lengendText.firstElementChild.innerText = file;
+            type.style.borderBottom = `1px solid ${color}`;
+            text.firstElementChild.innerText = file;
 
             let clone = document.importNode(template.content, true);
             lengend.appendChild(clone);

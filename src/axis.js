@@ -69,14 +69,64 @@ module.exports = class Axis {
         return val > this.max ? this.max : val;
     }
 
-    tickPos(idx) {
-        return this.distance(this.tick(idx));
+    getLabels(max) {
+        let useExponential = false;
+
+        for (let i = 0; i < this.ticks; ++i) {
+            let abs = Math.abs(this.tick(i));
+
+            if (abs > 1) {
+                let integralPart = Math.floor(abs);
+
+                let N = orderOfMagnitude(integralPart);
+
+                if (N > max) {
+                    useExponential = true;
+                    break;
+                }
+            }
+            else {
+                let n = orderOfMagnitude(abs);
+
+                if (Math.abs(n) > max) {
+                    useExponential = true;
+                    break;
+                }
+            }
+        }
+
+        let result = [];
+
+        if (useExponential) {
+
+            for (let i = 0; i < this.ticks; ++i) {
+                let val = this.tick(i);
+                let abs = Math.abs(val);
+
+                if (val == 0 || (abs > 1 && abs < 10)) {
+                    result.push(val.toString());
+                    continue;
+                }
+
+                let rounded = Math.round(val * Math.pow(10, this.precision)) / Math.pow(10, this.precision);
+
+                let [base, exp] = rounded.toExponential().split("e");
+
+                let len = max - (exp.length - exp[0] === "+" ? 1 : 0);
+
+                base = base.substring(0, len);
+
+                result.push(base + "\u00D7" + "10" + getEx(exp));
+            }
+        }
+
+
+
+        return result;
     }
 
-    lable(idx) {
-        let val = this.tick(idx);
-
-        return val.toFixed(this.precision);
+    tickPos(idx) {
+        return this.distance(this.tick(idx));
     }
 
     distance(val) {
@@ -84,15 +134,43 @@ module.exports = class Axis {
     }
 };
 
+const TIMES = "\u00D7";
+
+const SUPERSCRIPTS = ["\u2070",
+    "\u00B9",
+    "\u00B2",
+    "\u00B3",
+    "\u2074",
+    "\u2075",
+    "\u2076",
+    "\u2077",
+    "\u2078",
+    "\u2079"];
+
+function getEx(str) {
+    let exp = "";
+
+    if (str[0] === "-")
+        exp += "\u207B";
+
+    for (let i = 1; i < str.length; ++i) {
+        exp += SUPERSCRIPTS[str[i].charCodeAt(0) - '0'.charCodeAt(0)];
+    }
+
+    return exp;
+}
+
+function orderOfMagnitude(val) {
+    return Math.floor(Math.log10(val));
+}
+
 function findInterval(val) {
     const ticks = [1, 2, 5, 10, 25];
 
     let scale = 1;
 
     if (val < ticks[0] || val > ticks[ticks.length - 1]) {
-        let magnitude = Math.floor(Math.log10(val));
-
-        scale = Math.pow(10, magnitude);
+        scale = Math.pow(10, orderOfMagnitude(val));
     }
 
     for (let tick of ticks)
@@ -106,6 +184,15 @@ function decimal(num) {
     if (Number.isInteger(num))
         return 0;
 
-    let str = num.toString();
-    return str.length - str.indexOf(".") - 1;
+    let str = num.toFixed(15);
+    let i = str.length - 1;
+
+    for (; i >= 0; --i) {
+        if (str.charCodeAt(i) != '0'.charCodeAt(0))
+            break;
+    }
+
+    return i - 1;
 }
+
+

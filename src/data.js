@@ -56,13 +56,22 @@ exports.get = function (name) {
     return data;
 }
 
+function removeQuotes(str) {
+    if (str.length >= 2 &&
+        str[0] === "\"" &&
+        str[0] === str[str.length - 1])
+        return str.substring(1, str.length - 1);
+
+    return str;
+}
+
 function parseCSV(filename, result) {
     const IGNORE_FIRST_N = 3;
 
     let lines = result.split("\r\n");
 
-    let names = lines[0].split(",");
-    let units = lines[1].split(",");
+    let names = lines[0].split(",").map(removeQuotes);
+    let units = lines[1].split(",").map(removeQuotes);
 
     let cols = [];
     for (let i = 0; i < names.length; i++)

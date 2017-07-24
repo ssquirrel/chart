@@ -17,7 +17,7 @@ exports.show = function (chart) {
 
     lineChart.draw();
 
-    let configs = document.getElementsByClassName("axis-config");
+    let configs = document.querySelectorAll(".axis-config");
 
     for (let input of configs)
         input.value = "";
@@ -34,7 +34,7 @@ exports.show = function (chart) {
 }
 
 function apply() {
-    let configs = document.getElementsByClassName("axis-config");
+    let configs = document.querySelectorAll(".axis-config");
     {
         let min = parseFloat(configs[0].value);
         let max = parseFloat(configs[1].value);
