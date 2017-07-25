@@ -6,7 +6,7 @@ module.exports = class Axis {
         this.max = 0;
         this.interval = 0;
         this.ticks = 0;
-        this.precision = 0;
+        this.precision = 3;
         this.length = 0;
         this.title = 0;
         this.data = null;
@@ -21,10 +21,7 @@ module.exports = class Axis {
             this.min = axis.min;
             this.max = axis.max;
             this.interval = axis.interval;
-            this.ticks = Math.ceil(diff / axis.interval) + 1;
-
-            this.precision =
-                Math.max(decimal(this.min), decimal(this.max));
+            this.ticks = Math.round(diff / axis.interval) + 1;
         }
         else {
             const MIN_TICKS = 5;
@@ -42,7 +39,6 @@ module.exports = class Axis {
                     this.max = max;
                     this.interval = interval;
                     this.ticks = ticks;
-                    this.precision = decimal(this.interval);
 
                     if (max < axis.max) {
                         this.max += interval;
@@ -55,6 +51,7 @@ module.exports = class Axis {
 
         }
 
+        this.precision = axis.precision !== undefined ? axis.precision : this.precision;
         this.length = axis.length !== undefined ? axis.length : this.length;
         this.title = axis.title !== undefined ? axis.title : this.title;
         this.data = axis.data !== undefined ? axis.data : this.data;
@@ -69,54 +66,72 @@ module.exports = class Axis {
         return val > this.max ? this.max : val;
     }
 
-    getLabels(max) {
+    getLabels(digits) {
         let useExponential = false;
 
         for (let i = 0; i < this.ticks; ++i) {
-            let abs = Math.abs(this.tick(i));
+            let val = this.tick(i);
 
-            if (abs > 1) {
-                let integralPart = Math.floor(abs);
+            if (val === 0)
+                continue;
 
-                let N = orderOfMagnitude(integralPart);
+            let N = Math.abs(orderOfMagnitude(val));
 
-                if (N > max) {
-                    useExponential = true;
-                    break;
-                }
-            }
-            else {
-                let n = orderOfMagnitude(abs);
+            if (val > 1)
+                //123
+                N += 1;
+            else if (val < -1)
+                //-123
+                N += 2;
+            else
+                N = removePaddingZeros(val.toFixed(N + this.precision)).length;
 
-                if (Math.abs(n) > max) {
-                    useExponential = true;
-                    break;
-                }
+            if (N > digits) {
+                useExponential = true;
+                break;
             }
         }
 
         let result = [];
 
         if (useExponential) {
-
             for (let i = 0; i < this.ticks; ++i) {
                 let val = this.tick(i);
-                let abs = Math.abs(val);
 
-                if (val == 0 || (abs > 1 && abs < 10)) {
-                    result.push(val.toString());
+                if (val === 0) {
+                    result.push("0");
                     continue;
                 }
 
-                let rounded = Math.round(val * Math.pow(10, this.precision)) / Math.pow(10, this.precision);
+                let abs = Math.abs(val);
+                if (abs >= 1 && abs <= 10) {
+                    result.push(Math.trunc(val).toString());
+                    continue;
+                }
 
-                let [base, exp] = rounded.toExponential().split("e");
+                let exp = orderOfMagnitude(val);
 
-                let len = max - (exp.length - exp[0] === "+" ? 1 : 0);
+                let expStr = expToString(exp);
 
-                base = base.substring(0, len);
+                let baseStr = (val / Math.pow(10, exp)).toFixed(15);
 
-                result.push(base + "\u00D7" + "10" + getEx(exp));
+                let baseLen = digits - expStr.length - 1;//plus sign takes a digit's space
+
+                if (val > 0)
+                    baseLen = baseLen > 2 ? Math.min(this.precision + 2, baseLen) : 1;
+                else
+                    baseLen = baseLen > 3 ? Math.min(this.precision + 3, baseLen) : 2;
+
+                result.push(removePaddingZeros(baseStr.substring(0, baseLen)) +
+                    "\u00D7" +
+                    expStr);
+            }
+        }
+        else {
+            for (let i = 0; i < this.ticks; ++i) {
+                let val = this.tick(i);
+
+                result.push(removePaddingZeros(val.toFixed(this.precision)));
             }
         }
 
@@ -134,9 +149,11 @@ module.exports = class Axis {
     }
 };
 
+const SUPERSCRIPT_MINUS = '\u207B';
+
 const TIMES = "\u00D7";
 
-const SUPERSCRIPTS = ["\u2070",
+const SUPERSCRIPT_NUMBERS = ["\u2070",
     "\u00B9",
     "\u00B2",
     "\u00B3",
@@ -147,20 +164,47 @@ const SUPERSCRIPTS = ["\u2070",
     "\u2078",
     "\u2079"];
 
-function getEx(str) {
-    let exp = "";
+function removePaddingZeros(str) {
+    let i = str.length - 1;
 
-    if (str[0] === "-")
-        exp += "\u207B";
+    for (; i >= 0; --i)
+        if (str[i] !== '0')
+            break;
 
-    for (let i = 1; i < str.length; ++i) {
-        exp += SUPERSCRIPTS[str[i].charCodeAt(0) - '0'.charCodeAt(0)];
+    if (str[i] === '.')
+        return str.substring(0, i);
+
+    return str.substring(0, i + 1);
+}
+
+function roundTo(num, digit) {
+    let pow = Math.pow(10, digit);
+    return Math.round(num * pow) / pow;
+}
+
+function expToString(exp) {
+    let expStr = "";
+
+    if (exp < 0)
+        expStr += SUPERSCRIPT_MINUS;
+
+    let digits = [];
+    let abs = Math.abs(exp);
+    while (abs > 0) {
+        digits.push(abs % 10)
+        abs = Math.floor(abs / 10);
     }
 
-    return exp;
+    for (let i = digits.length - 1; i >= 0; --i)
+        expStr += SUPERSCRIPT_NUMBERS[digits[i]];
+
+    return "10" + expStr;
 }
 
 function orderOfMagnitude(val) {
+    if (val < 0)
+        val = Math.abs(val);
+
     return Math.floor(Math.log10(val));
 }
 
@@ -179,20 +223,3 @@ function findInterval(val) {
 
     throw "no proper tick found!";
 }
-
-function decimal(num) {
-    if (Number.isInteger(num))
-        return 0;
-
-    let str = num.toFixed(15);
-    let i = str.length - 1;
-
-    for (; i >= 0; --i) {
-        if (str.charCodeAt(i) != '0'.charCodeAt(0))
-            break;
-    }
-
-    return i - 1;
-}
-
-

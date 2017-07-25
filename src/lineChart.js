@@ -7,11 +7,11 @@ module.exports = class LineChart {
         this.w = w;
         this.h = h;
 
-        this.left = Math.floor(w * 0.15) + 0.5;
+        this.left = Math.floor(w * 0.2) + 0.5;
         this.bottom = Math.floor(h * 0.85) + 0.5;
 
         this.top = Math.floor(h * 0.05) + 0.5;
-        this.right = Math.floor(w * 0.85) + 0.5;
+        this.right = Math.floor(w * 0.95) + 0.5;
 
         this.width = this.right - this.left;
         this.height = this.bottom - this.top;
@@ -23,17 +23,17 @@ module.exports = class LineChart {
         this.ctx = null;
 
         this.xAxis = new Axis({
-            min: -80000000,
-            max: -20000000,
-            interval: 0,
+            min: 0,
+            max: 90000000,
+            interval: 10000000,
             length: this.width,
             title: "A very good x-title",
         });
 
         this.yAxis = [new Axis({
-            min: 0.000000125,
-            max: 0.000001,
-            interval: 0.000000125,
+            min: -0.00001,
+            max: -0.00000125,
+            interval: 0.00000125,
             length: this.height,
             title: "A very good x-title",
         })];
@@ -75,7 +75,7 @@ module.exports = class LineChart {
         const ctx = this.ctx;
         ctx.lineWidth = 1;
         ctx.strokeStyle = "grey";
-        ctx.font = "15px Arial";
+        ctx.font = "14px Arial";
 
         ctx.beginPath();
 
@@ -94,19 +94,7 @@ module.exports = class LineChart {
         }
 
         /*
-                ctx.textAlign = "right";
-                ctx.textBaseline = "middle"
-                for (let i = 0; i < y.ticks; ++i) {
-                    let h = this.bottom - Math.round(y.tickPos(i));
-                    ctx.fillText(y.lable(i), this.left - overflow * 1.5, h);
-                }
-        
-                ctx.textAlign = "center";
-                ctx.textBaseline = "top"
-                for (let i = 0; i < x.ticks; ++i) {
-                    let w = this.left + Math.round(x.tickPos(i));
-                    ctx.fillText(x.lable(i), w, this.bottom + overflow);
-                }
+                
         
                 this.drawTitle(x, this.left + x.length / 2, this.bottom + 20);
         
@@ -161,10 +149,27 @@ module.exports = class LineChart {
 
         const DIGIT_WIDTH = ctx.measureText("0").width;
         const INTERVAL_x = this.width / (x.ticks - 1);
-        const INTERVAL_y = this.height / (y.ticks - 1);
+        const INTERVAL_y = this.left - 10;
+        const max_d_x = Math.floor(INTERVAL_x / DIGIT_WIDTH);
+        const max_d_y = Math.floor(INTERVAL_y / DIGIT_WIDTH);
 
-        let xLabels = this.xAxis.getLabels(INTERVAL_x / DIGIT_WIDTH);
-        let yLabels = this.yAxis[0].getLabels(INTERVAL_y / DIGIT_WIDTH);
+        let xLabels = this.xAxis.getLabels(max_d_x);
+        let yLabels = this.yAxis[0].getLabels(max_d_y);
+
+
+        ctx.textAlign = "right";
+        ctx.textBaseline = "middle"
+        for (let i = 0; i < y.ticks; ++i) {
+            let h = this.bottom - Math.round(y.tickPos(i));
+            ctx.fillText(yLabels[i], this.left - overflow * 1.5, h);
+        }
+
+        ctx.textAlign = "center";
+        ctx.textBaseline = "top"
+        for (let i = 0; i < x.ticks; ++i) {
+            let w = this.left + Math.round(x.tickPos(i));
+            ctx.fillText(xLabels[i], w, this.bottom + overflow);
+        }
 
         ctx.stroke();
     }
