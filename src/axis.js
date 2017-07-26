@@ -154,6 +154,9 @@ module.exports = class Axis {
                 if (dot === -1) {
                     result.push(str);
                 }
+                else if (digits - dot < 2) {
+                    result.push(str.substring(0, dot));
+                }
                 else {
                     let i = dot + 1;
                     let count = 0;
