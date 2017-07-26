@@ -17,7 +17,21 @@ module.exports = class Axis {
     update(axis) {
         const diff = axis.max - axis.min;
 
-        if (axis.interval != 0) {
+        if (diff === 0) {
+            if (axis.max !== 0) {
+                this.min = 0;
+                this.max = axis.max * 2;
+                this.interval = axis.max;
+            }
+            else {
+                this.min = -1;
+                this.max = 1;
+                this.interval = 1;
+            }
+
+            this.ticks = 3;
+        }
+        else if (axis.interval != 0) {
             this.min = axis.min;
             this.max = axis.max;
             this.interval = axis.interval;
