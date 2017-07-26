@@ -7,11 +7,11 @@ module.exports = class LineChart {
         this.w = w;
         this.h = h;
 
-        this.left = Math.floor(w * 0.2) + 0.5;
+        this.left = Math.floor(w * 0.15) + 0.5;
         this.bottom = Math.floor(h * 0.85) + 0.5;
 
         this.top = Math.floor(h * 0.05) + 0.5;
-        this.right = Math.floor(w * 0.95) + 0.5;
+        this.right = Math.floor(w * 0.9) + 0.5;
 
         this.width = this.right - this.left;
         this.height = this.bottom - this.top;
@@ -23,17 +23,17 @@ module.exports = class LineChart {
         this.ctx = null;
 
         this.xAxis = new Axis({
-            min: 0,
-            max: 90000000,
-            interval: 10000000,
+            min: -0.001,
+            max: -0.000125,
+            interval: 0.000125,
             length: this.width,
             title: "A very good x-title",
         });
 
         this.yAxis = [new Axis({
-            min: -0.00001,
-            max: -0.00000125,
-            interval: 0.00000125,
+            min: 0,
+            max: 90000000,
+            interval: 10000000,
             length: this.height,
             title: "A very good x-title",
         })];

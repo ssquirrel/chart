@@ -1,5 +1,7 @@
 "use strict";
 
+const DECIMAL_PRECISION = 6;
+
 module.exports = class Axis {
     constructor(axis) {
         this.min = 0;
@@ -55,7 +57,7 @@ module.exports = class Axis {
                     this.ticks = ticks;
 
                     if (max < axis.max) {
-                        this.max += interval;
+                        this.max = min + interval * (count + 1);
                         this.ticks += 1;
                     }
 
@@ -145,7 +147,31 @@ module.exports = class Axis {
             for (let i = 0; i < this.ticks; ++i) {
                 let val = this.tick(i);
 
-                result.push(removePaddingZeros(val.toFixed(this.precision)));
+                let str = removePaddingZeros(val.toFixed(DECIMAL_PRECISION));
+
+                let dot = str.indexOf('.');
+
+                if (dot === -1) {
+                    result.push(str);
+                }
+                else {
+                    let i = dot + 1;
+                    let count = 0;
+                    for (; i < str.length && i < digits; ++i) {
+                        if (str[i] !== '0')
+                            ++count;
+                        else if (count !== 0)
+                            break;
+
+                        if (count == this.precision) {
+                            ++i;
+                            break;
+                        }
+                    }
+
+                    result.push(str.substring(0, i));
+                }
+
             }
         }
 
