@@ -22,12 +22,12 @@ exports.show = function (chart) {
     for (let input of configs)
         input.value = "";
 
-    configs[0].value = lineChart.xAxis.tick(0);
-    configs[1].value = lineChart.xAxis.tick(lineChart.xAxis.ticks - 1);
+    configs[0].value = lineChart.xAxis.getLabel(0)
+    configs[1].value = lineChart.xAxis.getLabel(lineChart.xAxis.ticks - 1);
     configs[2].value = lineChart.xAxis.interval;
 
-    configs[3].value = lineChart.yAxis[0].tick(0);
-    configs[4].value = lineChart.yAxis[0].tick(lineChart.yAxis[0].ticks - 1);
+    configs[3].value = lineChart.yAxis[0].getLabel(0);
+    configs[4].value = lineChart.yAxis[0].getLabel(lineChart.yAxis[0].ticks - 1);
     configs[5].value = lineChart.yAxis[0].interval;
 
     document.getElementById("editor").style.visibility = "visible";

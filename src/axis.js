@@ -1,14 +1,12 @@
 "use strict";
 
-const DECIMAL_PRECISION = 6;
-
 module.exports = class Axis {
     constructor(axis) {
         this.min = 0;
         this.max = 0;
         this.interval = 0;
         this.ticks = 0;
-        this.precision = 3;
+        this.accuracy = 0;
         this.length = 0;
         this.title = 0;
         this.data = null;
@@ -20,54 +18,64 @@ module.exports = class Axis {
         const diff = axis.max - axis.min;
 
         if (diff === 0) {
-            if (axis.max !== 0) {
+            if (axis.max > 0) {
                 this.min = 0;
                 this.max = axis.max * 2;
                 this.interval = axis.max;
-            }
-            else {
+            } else if (axis.max < 0) {
+                this.min = axis.max * 2;
+                this.max = 0;
+                this.interval = -axis.max;
+            } else {
                 this.min = -1;
                 this.max = 1;
                 this.interval = 1;
             }
 
             this.ticks = 3;
+            this.accuracy = 3;
         }
         else if (axis.interval != 0) {
             this.min = axis.min;
             this.max = axis.max;
             this.interval = axis.interval;
-            this.ticks = Math.round(diff / axis.interval) + 1;
+
+            let q = Math.floor(diff / axis.interval);
+
+            if (compareFloats(this.max, this.min + this.interval * q, 15))
+                this.ticks = q + 1;
+            else
+                this.ticks = q + 2;
         }
         else {
             const MIN_TICKS = 5;
             const MAX_TICKS = 9;
 
-            for (let ticks = MIN_TICKS; ticks < MAX_TICKS; ++ticks) {
+            for (let ticks = MIN_TICKS; ticks <= MAX_TICKS; ++ticks) {
                 let count = ticks - 1;
 
                 let interval = findInterval(diff / count);
                 let min = Math.floor(axis.min / interval) * interval;
                 let max = min + interval * count;
 
-                if (Math.abs(max - axis.max) <= interval) {
-                    this.min = min;
-                    this.max = max;
-                    this.interval = interval;
-                    this.ticks = ticks;
+                this.min = min;
+                this.max = max;
+                this.interval = interval;
+                this.ticks = ticks;
 
-                    if (max < axis.max) {
-                        this.max = min + interval * (count + 1);
-                        this.ticks += 1;
-                    }
-
+                if (Math.abs(max - axis.max) <= interval)
                     break;
-                }
             }
 
+            if (this.max < axis.max) {
+                this.max = this.min + this.interval * this.ticks;
+                this.ticks += 1;
+            }
         }
 
-        this.precision = axis.precision !== undefined ? axis.precision : this.precision;
+        let b = orderOfMagnitude(this.interval);
+        this.accuracy = b < 0 ? Math.abs(b) + 2 : 3;
+
         this.length = axis.length !== undefined ? axis.length : this.length;
         this.title = axis.title !== undefined ? axis.title : this.title;
         this.data = axis.data !== undefined ? axis.data : this.data;
@@ -79,108 +87,60 @@ module.exports = class Axis {
 
         let val = this.min + idx * this.interval;
 
-        return val > this.max ? this.max : val;
+        if (compareFloats(val, this.max, 15))
+            return this.max;
+        else
+            return val;
     }
 
-    getLabels(digits) {
+    getLabel(idx) {
+        let val = this.tick(idx);
+
+        return removePaddingZeros(val.toFixed(this.accuracy));
+    }
+
+    getLabels(len) {
+        const vals = [];
+
+        for (let i = 0; i < this.ticks; ++i)
+            vals.push(this.tick(i));
+
         let useExponential = false;
 
-        for (let i = 0; i < this.ticks; ++i) {
-            let val = this.tick(i);
-
+        for (let val of vals) {
             if (val === 0)
                 continue;
 
             let N = Math.abs(orderOfMagnitude(val));
 
-            if (val > 1)
-                //123
-                N += 1;
-            else if (val < -1)
+            if (val <= -1)
                 //-123
                 N += 2;
+            else if (val < 0)
+                //-0.123
+                N += 3;
+            else if (val >= 1)
+                //123
+                N += 1;
             else
-                N = removePaddingZeros(val.toFixed(N + this.precision)).length;
+                //0.123
+                N += 2;
 
-            if (N > digits) {
+
+            if (N > len) {
                 useExponential = true;
                 break;
             }
         }
 
-        let result = [];
-
-        if (useExponential) {
-            for (let i = 0; i < this.ticks; ++i) {
-                let val = this.tick(i);
-
-                if (val === 0) {
-                    result.push("0");
-                    continue;
-                }
-
-                let abs = Math.abs(val);
-                if (abs >= 1 && abs <= 10) {
-                    result.push(Math.trunc(val).toString());
-                    continue;
-                }
-
-                let exp = orderOfMagnitude(val);
-
-                let expStr = expToString(exp);
-
-                let baseStr = (val / Math.pow(10, exp)).toFixed(15);
-
-                let baseLen = digits - expStr.length - 1;//plus sign takes a digit's space
-
-                if (val > 0)
-                    baseLen = baseLen > 2 ? Math.min(this.precision + 2, baseLen) : 1;
-                else
-                    baseLen = baseLen > 3 ? Math.min(this.precision + 3, baseLen) : 2;
-
-                result.push(removePaddingZeros(baseStr.substring(0, baseLen)) +
-                    "\u00D7" +
-                    expStr);
-            }
-        }
-        else {
-            for (let i = 0; i < this.ticks; ++i) {
-                let val = this.tick(i);
-
-                let str = removePaddingZeros(val.toFixed(DECIMAL_PRECISION));
-
-                let dot = str.indexOf('.');
-
-                if (dot === -1) {
-                    result.push(str);
-                }
-                else if (digits - dot < 2) {
-                    result.push(str.substring(0, dot));
-                }
-                else {
-                    let i = dot + 1;
-                    let count = 0;
-                    for (; i < str.length && i < digits; ++i) {
-                        if (str[i] !== '0')
-                            ++count;
-                        else if (count !== 0)
-                            break;
-
-                        if (count == this.precision) {
-                            ++i;
-                            break;
-                        }
-                    }
-
-                    result.push(str.substring(0, i));
-                }
-
-            }
-        }
+        if (useExponential)
+            return vals.map(val => toExpoential(val, this.accuracy, len));
 
 
+        return vals.map(val =>
+            removePaddingZeros(val.toFixed(this.accuracy))
+        );
 
-        return result;
     }
 
     tickPos(idx) {
@@ -207,6 +167,34 @@ const SUPERSCRIPT_NUMBERS = ["\u2070",
     "\u2078",
     "\u2079"];
 
+function compareFloats(a, b, acc) {
+    return Math.abs(a - b) <= Math.pow(10, -acc);
+}
+
+function toExpoential(val, acc, len) {
+    if (val === 0)
+        return '0';
+
+    let abs = Math.abs(val);
+    if (abs >= 1 && abs <= 10)
+        return Math.trunc(val).toString();
+
+    let N = orderOfMagnitude(val);
+
+    let expStr = expToString(N);
+
+    let baseStr = (val / Math.pow(10, N)).toFixed(acc);
+
+    let baseLen = len - expStr.length;
+
+    if (val > 0)
+        baseLen = baseLen > 2 ? Math.min(acc + 2, baseLen) : 1;
+    else
+        baseLen = baseLen > 3 ? Math.min(acc + 3, baseLen) : 2;
+
+    return removePaddingZeros(baseStr.substring(0, baseLen)) + expStr;
+}
+
 function removePaddingZeros(str) {
     let i = str.length - 1;
 
@@ -218,11 +206,6 @@ function removePaddingZeros(str) {
         return str.substring(0, i);
 
     return str.substring(0, i + 1);
-}
-
-function roundTo(num, digit) {
-    let pow = Math.pow(10, digit);
-    return Math.round(num * pow) / pow;
 }
 
 function expToString(exp) {
@@ -241,7 +224,7 @@ function expToString(exp) {
     for (let i = digits.length - 1; i >= 0; --i)
         expStr += SUPERSCRIPT_NUMBERS[digits[i]];
 
-    return "10" + expStr;
+    return TIMES + "10" + expStr;
 }
 
 function orderOfMagnitude(val) {

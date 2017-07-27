@@ -23,17 +23,17 @@ module.exports = class LineChart {
         this.ctx = null;
 
         this.xAxis = new Axis({
-            min: -0.001,
-            max: -0.000125,
-            interval: 0.000125,
+            min: 0.0125,
+            max: 0.1,
+            interval: 0.0125,
             length: this.width,
             title: "A very good x-title",
         });
 
         this.yAxis = [new Axis({
-            min: 0,
-            max: 90000000,
-            interval: 10000000,
+            min: 0.00125,
+            max: 0.01,
+            interval: 0.00125,
             length: this.height,
             title: "A very good x-title",
         })];
@@ -149,7 +149,7 @@ module.exports = class LineChart {
 
         const DIGIT_WIDTH = ctx.measureText("0").width;
         const INTERVAL_x = this.width / (x.ticks - 1);
-        const INTERVAL_y = this.left - 10;
+        const INTERVAL_y = this.left - 30;
         const max_d_x = Math.floor(INTERVAL_x / DIGIT_WIDTH);
         const max_d_y = Math.floor(INTERVAL_y / DIGIT_WIDTH);
 
