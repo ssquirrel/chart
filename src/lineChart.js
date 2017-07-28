@@ -68,6 +68,7 @@ module.exports = class LineChart {
         ctx.lineWidth = 1;
         ctx.strokeStyle = "grey";
         ctx.font = "14px Arial";
+        ctx.fillStyle = "black";
 
         ctx.beginPath();
 
@@ -195,7 +196,8 @@ module.exports = class LineChart {
     draw() {
         const ctx = this.ctx;
 
-        ctx.clearRect(0, 0, this.w, this.h);
+        ctx.fillStyle = "white";
+        ctx.fillRect(0, 0, this.w, this.h);
 
 
         this.drawGrid();
@@ -232,7 +234,7 @@ function createAxis(length, init) {
         })),
         interval: 0,
         length: length,
-        title: `${init[0].name} [${init[0].unit ? '-' : init[0].unit}]`,
+        title: `${init[0].name} [${init[0].unit ? init[0].unit : '-'}]`,
         data: init
     });
 }

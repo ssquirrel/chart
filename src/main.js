@@ -34,7 +34,7 @@ document.addEventListener("DOMContentLoaded", function () {
         charts[idx].draw();
     });
 
-    charts[0].draw();
+    //charts[0].draw();
 });
 
 function load() {
@@ -116,7 +116,9 @@ function chart() {
     let titles = document.getElementsByClassName("chart-title");
     let x = data.get(select_x[0].innerText);
 
-    for (let i = 0; i < select_y.length; ++i) {
+    let i = 0;
+
+    for (; i < select_y.length && i < 4; ++i) {
         let y = data.get(select_y[i].innerText);
 
         titles[i].value = y[0].name;
@@ -125,5 +127,14 @@ function chart() {
             x: x,
             y: y
         });
+    }
+
+    for (; i < 4; ++i) {
+        const ctx = charts[i].ctx;
+        const canvas = ctx.canvas;
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        titles[i].value = "";
     }
 }
