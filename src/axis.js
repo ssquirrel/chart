@@ -33,19 +33,19 @@ module.exports = class Axis {
             }
 
             this.ticks = 3;
-            this.accuracy = 3;
         }
         else if (axis.interval != 0) {
             this.min = axis.min;
             this.max = axis.max;
             this.interval = axis.interval;
 
-            let q = Math.floor(diff / axis.interval);
+            let ticks = Math.ceil(diff / this.interval);
 
-            if (compareFloats(this.max, this.min + this.interval * q, 15))
-                this.ticks = q + 1;
+            if (this.interval * (ticks - 1) >= diff * 0.999)
+                this.ticks = ticks;
             else
-                this.ticks = q + 2;
+                this.ticks = ticks + 1;
+
         }
         else {
             const MIN_TICKS = 5;
@@ -85,12 +85,10 @@ module.exports = class Axis {
         if (idx < 0 || idx >= this.ticks)
             throw "max:" + this.ticks + " tried:" + idx;
 
-        let val = this.min + idx * this.interval;
-
-        if (compareFloats(val, this.max, 15))
+        if (idx === this.ticks - 1)
             return this.max;
-        else
-            return val;
+
+        return this.min + idx * this.interval;
     }
 
     getLabel(idx) {
@@ -105,42 +103,29 @@ module.exports = class Axis {
         for (let i = 0; i < this.ticks; ++i)
             vals.push(this.tick(i));
 
-        let useExponential = false;
+
+        let full = [];
 
         for (let val of vals) {
-            if (val === 0)
+            if (val === 0) {
+                full.push("0");
                 continue;
-
-            let N = Math.abs(orderOfMagnitude(val));
-
-            if (val <= -1)
-                //-123
-                N += 2;
-            else if (val < 0)
-                //-0.123
-                N += 3;
-            else if (val >= 1)
-                //123
-                N += 1;
-            else
-                //0.123
-                N += 2;
-
-
-            if (N > len) {
-                useExponential = true;
-                break;
             }
+
+            let N = orderOfMagnitude(val);
+
+            let str = removePaddingZeros(
+                val.toFixed(N < 0 ? this.accuracy : 3)
+            );
+
+            if ((N >= 5 && str.length > len) ||
+                (N <= -4 && str.length > len))
+                return vals.map(val => toExpoential(val, this.accuracy, len));
+
+            full.push(str);
         }
 
-        if (useExponential)
-            return vals.map(val => toExpoential(val, this.accuracy, len));
-
-
-        return vals.map(val =>
-            removePaddingZeros(val.toFixed(this.accuracy))
-        );
-
+        return full;
     }
 
     tickPos(idx) {
@@ -167,8 +152,10 @@ const SUPERSCRIPT_NUMBERS = ["\u2070",
     "\u2078",
     "\u2079"];
 
-function compareFloats(a, b, acc) {
-    return Math.abs(a - b) <= Math.pow(10, -acc);
+const TOLERANCE = Math.pow(10, -15);
+
+function compareFloats(a, b) {
+    return Math.abs(a - b) <= TOLERANCE;
 }
 
 function toExpoential(val, acc, len) {

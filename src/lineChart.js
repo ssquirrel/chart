@@ -31,9 +31,9 @@ module.exports = class LineChart {
         });
 
         this.yAxis = [new Axis({
-            min: 0.00125,
-            max: 0.01,
-            interval: 0.00125,
+            min: 0,
+            max: 6,
+            interval: 1,
             length: this.height,
             title: "A very good x-title",
         })];
@@ -59,14 +59,6 @@ module.exports = class LineChart {
         }
 
         return lable_len;
-    }
-
-    drawTitle(axis, x, y) {
-        const ctx = this.ctx;
-
-        let unit = axis.unit ? axis.unit : "-";
-
-        ctx.fillText(axis.title + " [" + unit + "]", x, y);
     }
 
     drawGrid() {
@@ -129,22 +121,7 @@ module.exports = class LineChart {
                             ctx.fillText(x.lable(i), w, lable_x_h);
                         }
                 
-                        this.drawTitle(x, this.left + x.length / 2, title_x_h);
-                
-                        ctx.rotate(3 * Math.PI / 2);
-                        ctx.textBaseline = "bottom";
-                        this.drawTitle(y,
-                            -(this.top + y.length / 2),
-                            this.left - overflow * 2.5 - lable_y_len);
-                
-                        if (y1) {
-                            ctx.textBaseline = "top";
-                
-                            this.drawTitle(y1,
-                                -(this.top + y.length / 2),
-                                this.right + overflow * 2.5 + lable_y_len_r);
-                        }
-                        ctx.rotate(-3 * Math.PI / 2);
+                       
                 */
 
         const DIGIT_WIDTH = ctx.measureText("0").width;
@@ -155,7 +132,6 @@ module.exports = class LineChart {
 
         let xLabels = this.xAxis.getLabels(max_d_x);
         let yLabels = this.yAxis[0].getLabels(max_d_y);
-
 
         ctx.textAlign = "right";
         ctx.textBaseline = "middle"
@@ -170,6 +146,21 @@ module.exports = class LineChart {
             let w = this.left + Math.round(x.tickPos(i));
             ctx.fillText(xLabels[i], w, this.bottom + overflow);
         }
+
+        ctx.fillText(x.title, this.left + x.length / 2, this.bottom + 20);
+
+        ctx.rotate(3 * Math.PI / 2);
+        ctx.textBaseline = "bottom";
+
+        let yLabelLen = 0;
+        for (let str of yLabels)
+            yLabelLen = Math.max(yLabelLen, ctx.measureText(str).width);
+
+        ctx.fillText(y.title,
+            -(this.top + y.length / 2),
+            this.left - overflow * 2.5 - yLabelLen);
+        ctx.rotate(-3 * Math.PI / 2);
+
 
         ctx.stroke();
     }
@@ -241,8 +232,7 @@ function createAxis(length, init) {
         })),
         interval: 0,
         length: length,
-        title: init[0].name,
-        unit: init[0].unit,
+        title: `${init[0].name} [${init[0].unit ? '-' : init[0].unit}]`,
         data: init
     });
 }
