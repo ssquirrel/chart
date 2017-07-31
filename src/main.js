@@ -27,11 +27,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     Editor.init(function (chart) {
-        let idx = charts.indexOf(chart);
-
-        charts[idx].ctx = document.querySelectorAll(".chart")[idx].getContext("2d");
-
-        charts[idx].draw();
+        chart.draw();
     });
 
     //charts[0].draw();

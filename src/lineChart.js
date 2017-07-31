@@ -39,28 +39,6 @@ module.exports = class LineChart {
         })];
     }
 
-    drawGridY(y, left, right, lable_x) {
-        const ctx = this.ctx;
-
-        let lable_len = 0;
-
-        for (let i = 0; i < y.ticks; ++i) {
-            let h = this.bottom - Math.round(y.tickPos(i));
-            ctx.moveTo(left, h);
-            ctx.lineTo(right, h);
-
-            let lable = y.lable(i);
-
-            ctx.fillText(lable, lable_x, h);
-
-            let len = ctx.measureText(lable).width;
-            if (len > lable_len)
-                lable_len = len;
-        }
-
-        return lable_len;
-    }
-
     drawGrid() {
         const overflow = 4;
 
@@ -85,45 +63,6 @@ module.exports = class LineChart {
             ctx.moveTo(this.left - overflow, h);
             ctx.lineTo(this.right, h);
         }
-
-        /*
-                
-        
-                this.drawTitle(x, this.left + x.length / 2, this.bottom + 20);
-        
-                
-                        ctx.font = font;
-                        ctx.fillStyle = "black";
-                        const font = "15px Arial";
-                
-        
-                
-                        let lable_y_len = this.drawGridY(y,
-                            this.left - overflow,
-                            this.right,
-                            this.left - overflow * 1.5);
-                
-                        let lable_y_len_r = 0;
-                        if (y1) {
-                            ctx.textAlign = "left";
-                
-                            lable_y_len_r = this.drawGridY(y1,
-                                this.right,
-                                this.right + overflow,
-                                this.right + overflow * 1.5);
-                        }
-                
-                        ctx.textAlign = "center";
-                        for (let i = 0; i < x.ticks; ++i) {
-                            let w = this.left + Math.round(x.tickPos(i));
-                            ctx.moveTo(w, this.top);
-                            ctx.lineTo(w, this.bottom + overflow);
-                
-                            ctx.fillText(x.lable(i), w, lable_x_h);
-                        }
-                
-                       
-                */
 
         const DIGIT_WIDTH = ctx.measureText("0").width;
         const INTERVAL_x = this.width / (x.ticks - 1);
@@ -166,29 +105,49 @@ module.exports = class LineChart {
         ctx.stroke();
     }
 
+    posX(val) {
+        return this.left + this.xAxis.distance(val);
+    }
+
+    posY1(val) {
+        return this.bottom - this.yAxis[0].distance(val);
+    }
+
     drawLine(yAxis) {
         if (!yAxis.data)
             return;
 
         const ctx = this.ctx;
+        const xAxis = this.xAxis;
+        const xValues = xAxis.data[0].values;
 
-        let x = this.xAxis.data[0].values;
+        ctx.fillStyle = "white";
 
-        for (let data of yAxis.data) {
+        for (let { values: yValues, color } of yAxis.data) {
+            ctx.strokeStyle = color;
+
             ctx.beginPath();
-            ctx.strokeStyle = data.color;
 
-            let y = data.values;
+            ctx.moveTo(this.posX(xValues[0]),
+                this.posY1(yValues[0]));
 
-            ctx.moveTo(this.left + this.xAxis.distance(x[0]),
-                this.bottom - yAxis.distance(y[0]));
-
-            for (let i = 1; i < y.length; ++i) {
-                ctx.lineTo(this.left + this.xAxis.distance(x[i]),
-                    this.bottom - yAxis.distance(y[i]));
-            }
+            for (let i = 1; i < yValues.length; ++i)
+                ctx.lineTo(this.posX(xValues[i]),
+                    this.posY1(yValues[i]));
 
             ctx.stroke();
+
+
+            for (let i = 0; i < yValues.length; ++i) {
+                ctx.beginPath();
+
+                ctx.arc(this.posX(xValues[i]), this.posY1(yValues[i]),
+                    5, 0, 2 * Math.PI);
+
+                ctx.fill();
+                ctx.stroke();
+            }
+
         }
 
     }

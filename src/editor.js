@@ -2,6 +2,7 @@
 
 let callback = null;
 let lineChart = null;
+let oldctx = null;
 
 exports.init = function (cb) {
     callback = cb;
@@ -12,6 +13,7 @@ exports.init = function (cb) {
 
 exports.show = function (chart) {
     lineChart = chart;
+    oldctx = chart.ctx;
 
     lineChart.ctx = document.getElementById("editor-chart").getContext("2d");
 
@@ -63,7 +65,12 @@ function apply() {
 }
 
 function ok() {
+    apply();
+
     document.getElementById("editor").style.visibility = "hidden";
+
+    lineChart.ctx = oldctx;
+    oldctx = null;
 
     if (callback) {
         callback(lineChart);
