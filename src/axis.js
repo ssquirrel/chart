@@ -6,7 +6,7 @@ module.exports = class Axis {
         this.max = 0;
         this.interval = 0;
         this.ticks = 0;
-        this.accuracy = 0;
+        this.accuracy = 10;
         this.length = 0;
         this.title = 0;
         this.data = null;
@@ -73,9 +73,7 @@ module.exports = class Axis {
             }
         }
 
-        let b = orderOfMagnitude(this.interval);
-        this.accuracy = b < 0 ? Math.abs(b) + 2 : 3;
-
+        this.accuracy = axis.accuracy !== undefined ? axis.accuracy : this.accuracy;
         this.length = axis.length !== undefined ? axis.length : this.length;
         this.title = axis.title !== undefined ? axis.title : this.title;
         this.data = axis.data !== undefined ? axis.data : this.data;
@@ -114,9 +112,7 @@ module.exports = class Axis {
 
             let N = orderOfMagnitude(val);
 
-            let str = removePaddingZeros(
-                val.toFixed(N < 0 ? this.accuracy : 3)
-            );
+            let str = removePaddingZeros(val.toFixed(this.accuracy));
 
             if ((N >= 5 && str.length > len) ||
                 (N <= -4 && str.length > len))
